@@ -1,0 +1,2342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agent Experience Lab</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Agent Experience Lab: a workshop simulation with fictional people, clinics and data.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%2300D7A0%27/%3E%3Cpath d=%27M16 5v4%27 stroke=%27%23000028%27 stroke-width=%272.4%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2716%27 cy=%275%27 r=%271.8%27 fill=%27%23000028%27/%3E%3Crect x=%276%27 y=%279.5%27 width=%2720%27 height=%2716%27 rx=%275%27 fill=%27%23000028%27/%3E%3Ccircle cx=%2712%27 cy=%2717%27 r=%272.3%27 fill=%27%2300D7A0%27/%3E%3Ccircle cx=%2720%27 cy=%2717%27 r=%272.3%27 fill=%27%2300D7A0%27/%3E%3Cpath d=%27M12.5 22h7%27 stroke=%27%2300D7A0%27 stroke-width=%271.8%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+<style>
+/* Layout: one-screen workshop app. Build = palette | canvas | guide. Test = chat | live agent diagram over step trace + inspector. */
+:root{
+  --bg:#000028; --bg-deep:#00001a; --panel:#0b0b33; --panel-2:#11113b; --panel-3:#1a1a49;
+  --line:rgba(255,255,255,.10); --line-strong:rgba(255,255,255,.22);
+  --ink:#eef1f8; --soft:#c4c8dd; --mute:#8d90ad;
+  --mint:#00ffb9; --petrol:#00cccc; --tool:#5cb8ff; --data:#a493ff; --guard:#ffb500; --human:#ff8fb1; --user:#c4c8dd; --teams:#8b8ff0; --on-teams:#10102e;
+  --ok:#01d65a; --warn:#ffb500; --bad:#ff5c6c;
+  --on-accent:#000028; --glow1:#0a3540; --glow2:#001b3a;
+  --font:"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace;
+  --tm-font:"Segoe UI","Segoe UI Web",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --tm-canvas:#1f1f1f; --tm-pane:#292929; --tm-bubble:#292929; --tm-own:#2f2f4a; --tm-ink:#ffffff; --tm-mute:#adadad;
+  --tm-line:#3d3d3d; --tm-title:#0f0f0f; --tm-rail:#141414; --tm-brand:#7f85f5; --tm-btn:#4f52b2; --tm-btn-ink:#ffffff; --tm-badge:#e37d80;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f3f5f9; --bg-deep:#e8ecf2; --panel:#ffffff; --panel-2:#f6f7fb; --panel-3:#e9ecf4;
+  --line:rgba(0,0,40,.10); --line-strong:rgba(0,0,40,.22);
+  --ink:#000028; --soft:#33365a; --mute:#5e6280;
+  --mint:#008f78; --petrol:#007f8c; --tool:#1f6fd1; --data:#6a4fe0; --guard:#a86f00; --human:#c2386b; --user:#5e6280; --teams:#5b5fc7; --on-teams:#ffffff;
+  --ok:#00805a; --warn:#a86f00; --bad:#d6362e;
+  --on-accent:#ffffff; --glow1:#dceef0; --glow2:#e3e9f6;
+  --tm-canvas:#f5f5f5; --tm-pane:#ffffff; --tm-bubble:#ffffff; --tm-own:#e8ebfa; --tm-ink:#242424; --tm-mute:#616161;
+  --tm-line:#e0e0e0; --tm-title:#ebebeb; --tm-rail:#ebebeb; --tm-brand:#5b5fc7; --tm-btn:#5b5fc7; --tm-btn-ink:#ffffff; --tm-badge:#c4314b;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);color:var(--ink);font-size:14px;line-height:1.45;
+  background:radial-gradient(1100px 520px at 10% -10%,var(--glow1) 0%,transparent 56%),radial-gradient(900px 460px at 95% 0%,var(--glow2) 0%,transparent 58%),var(--bg);
+  background-color:var(--bg)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 12px}
+
+/* header */
+.bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 320px}
+.wm{font-weight:800;letter-spacing:.14em;font-size:15px;color:var(--petrol)}
+.brand .sep{width:1px;height:28px;background:var(--line-strong)}
+.brand b{display:block;font-size:16px;letter-spacing:.01em}
+.brand small{display:block;color:var(--mute);font-size:12px}
+.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tab{border:0;background:transparent;padding:5px 11px;border-radius:8px;cursor:pointer;color:var(--soft);font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
+.tab .n{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;border:1px solid var(--line-strong)}
+.tab.on{background:var(--mint);color:var(--on-accent)}
+.tab.on .n{border-color:var(--on-accent)}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;cursor:pointer;color:var(--soft)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn .sun{display:none}
+:root[data-theme="light"] .icon-btn .moon{display:none}
+:root[data-theme="light"] .icon-btn .sun{display:block}
+.restart{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.restart svg{width:15px;height:15px;flex:none}
+@media (max-width:760px){.restart:not(.sure) span{display:none}.restart{padding:7px 9px}}
+.restart.sure{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel))}
+.sim{font-size:11px;color:var(--mute);border:1px dashed var(--line-strong);border-radius:999px;padding:3px 10px;white-space:nowrap}
+
+main{min-height:0}
+.view{height:100%;min-height:0}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:14px;min-height:0;min-width:0}
+.ph{padding:12px 14px 8px}
+.ph h2{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--petrol)}
+.ph p{margin:2px 0 0;color:var(--mute);font-size:12px}
+.btn{border:1px solid var(--line-strong);background:var(--panel-3);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--mint)}
+.btn.primary{background:var(--mint);border-color:var(--mint);color:var(--on-accent)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 11px;cursor:pointer;color:var(--soft);font-size:12.5px;font-weight:600;line-height:1.15;text-align:left}
+.seg button small{display:block;font-weight:400;font-size:10.5px;color:var(--mute)}
+.seg button.on{background:var(--panel-3);color:var(--ink);box-shadow:inset 0 -2px 0 var(--mint)}
+.seg.data button.on[data-mode="raw"]{box-shadow:inset 0 -2px 0 var(--warn)}
+.lbl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:700}
+
+/* stage (shared by build canvas and test diagram) */
+.stage-wrap{position:relative;overflow:auto;display:flex;min-height:0}
+.sizer{margin:auto;position:relative;flex:none}
+.stage{position:absolute;left:0;top:0;width:1000px;height:650px;transform-origin:0 0}
+.stage svg.edges{position:absolute;inset:0;width:1000px;height:650px;overflow:visible}
+.edge{fill:none;stroke:var(--line-strong);stroke-width:1.6}
+.edge.bad{stroke:var(--warn);stroke-dasharray:5 5}
+.edge.used{stroke:color-mix(in srgb,var(--mint) 55%,transparent);stroke-width:2.2}
+.edge.live{stroke:var(--mint);stroke-width:2.8;stroke-dasharray:7 6;animation:flow .6s linear infinite}
+.edge.warnlive{stroke:var(--warn)}
+.edge.sel{stroke:var(--bad);stroke-width:3}
+.hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer;pointer-events:stroke}
+.tmp{fill:none;stroke:var(--mint);stroke-width:2;stroke-dasharray:4 4;pointer-events:none}
+@keyframes flow{to{stroke-dashoffset:-13}}
+.packet{fill:var(--mint);filter:drop-shadow(0 0 6px var(--mint))}
+.packet.warn{fill:var(--warn);filter:drop-shadow(0 0 6px var(--warn))}
+.node{--k:var(--petrol);position:absolute;transform:translate(-50%,-50%);width:var(--w,150px);min-height:48px;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:12px;
+  background:var(--panel-2);border:1.5px solid color-mix(in srgb,var(--k) 50%,transparent);color:var(--ink);transition:opacity .3s,box-shadow .3s,border-color .3s;user-select:none;-webkit-user-select:none;touch-action:none}
+.node[data-kind="user"]{--k:var(--user)} .node[data-kind="orch"]{--k:var(--mint)} .node[data-kind="agent"]{--k:var(--petrol)}
+.node[data-kind="tool"]{--k:var(--tool)} .node[data-kind="data"]{--k:var(--data)} .node[data-kind="guard"]{--k:var(--guard)} .node[data-kind="human"]{--k:var(--human)}
+.node .ic{width:26px;height:26px;flex:none;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k)}
+.node .ic svg{width:16px;height:16px}
+.node .tx{min-width:0}
+.node b{display:block;font-size:12.5px;line-height:1.15}
+.node small{display:block;font-size:10.5px;color:var(--mute);line-height:1.2;margin-top:1px}
+.node.dx{border-style:dashed;border-color:var(--warn)}
+.dxm{position:absolute;top:-10px;left:-10px;z-index:2;width:22px;height:22px;border-radius:50%;background:var(--warn);color:var(--on-accent);font-weight:800;font-size:13px;line-height:1;display:grid;place-items:center;cursor:help;box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 25%,transparent)}
+.dxm.lk{transform:translate(-50%,-50%);top:auto;left:auto}
+.node.active{border-color:var(--k);box-shadow:0 0 0 2px var(--k),0 0 30px color-mix(in srgb,var(--k) 55%,transparent)}
+.node.think .ic{animation:spin 1.2s linear infinite}
+@keyframes spin{50%{transform:scale(1.18)}}
+.node.done{border-color:var(--k)}
+.node.warn{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn),0 0 24px color-mix(in srgb,var(--warn) 50%,transparent)}
+.node.wait{border-color:var(--human);animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 3px var(--human),0 0 34px color-mix(in srgb,var(--human) 60%,transparent)}}
+.node.dim{opacity:.32}
+.node.sel{box-shadow:0 0 0 2px var(--mint)}
+.node.flash{animation:flash .9s ease 2}
+@keyframes flash{50%{box-shadow:0 0 0 3px var(--mint),0 0 30px var(--mint)}}
+.node .rm{display:none;position:absolute;top:-9px;right:-9px;width:20px;height:20px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-weight:700;line-height:1;cursor:pointer;padding:0}
+.node.sel .rm{display:block}
+.node .hd{position:absolute;right:-7px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--k);border:2px solid var(--panel);cursor:crosshair}
+.node[data-id="user"] .rm{display:none!important}
+.stage.anim .node{transition:left .6s ease,top .6s ease}
+.stage.connecting .node{cursor:copy}
+.edge-pill{position:absolute;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--mint);color:var(--ink);font-size:11px;padding:3px 8px;border-radius:999px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.edge-pill.warn{border-color:var(--warn)}
+.edge-rm{position:absolute;transform:translate(-50%,-50%);border:0;background:var(--bad);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;cursor:pointer}
+
+/* zoom control (canvas and diagram) */
+.zoomer{position:absolute;right:10px;bottom:10px;z-index:5;display:flex;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:3px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.zoomer button{width:28px;height:28px;border:0;border-radius:7px;background:transparent;cursor:pointer;color:var(--ink);font-size:16px;font-weight:700;line-height:1}
+.zoomer button:hover{background:var(--panel-3)}
+.zoomer .zl{min-width:44px;text-align:center;font-size:11.5px;color:var(--soft);font-variant-numeric:tabular-nums}
+.zoomer .fit{width:auto;padding:0 8px;font-size:11.5px;font-weight:600}
+.canvas-panel .legend{position:absolute;left:10px;bottom:10px;z-index:4;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--panel) 92%,transparent);padding:6px 10px;gap:6px 12px;max-width:calc(100% - 390px)}
+.canvas-panel .stage-wrap{padding-bottom:52px;padding-top:50px}
+.canvas-era{position:absolute;top:10px;right:10px;z-index:5;background:var(--panel)}
+.scenes.build-shell .scenes-head{flex-wrap:nowrap}
+.scenes.build-shell .ctrls{flex:none}
+/* BUILD */
+.scenes-body.build-body{grid-template-columns:210px minmax(0,1fr)}
+.stepper{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+.step-pills{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.step-pills li{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 3px;font-size:12px;color:var(--soft);background:var(--panel-2)}
+.step-pills .sn{width:20px;height:20px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:11px;font-weight:700}
+.step-pills li.done{color:var(--mute)}
+.step-pills li.done .sn{background:var(--ok);border-color:var(--ok);color:var(--on-accent)}
+.step-pills li.cur{border-color:var(--mint);color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--mint) 10%,var(--panel-2))}
+.step-pills li.cur .sn{background:var(--mint);border-color:var(--mint);color:var(--on-accent)}
+.step-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.step-btns .sep{width:1px;height:20px;background:var(--line-strong);margin:0 4px}
+.step-now{font-size:13px;color:var(--soft);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0}
+.step-now b{color:var(--ink)}
+.step-now em{font-style:normal;color:var(--mute);font-size:12px}
+.meters{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.meter{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--panel-2);font-size:12px;color:var(--mute)}
+.meter b{color:var(--ink);font-variant-numeric:tabular-nums}
+.meter .barx{width:44px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.meter .barx i{display:block;height:100%;background:var(--mint);width:0;transition:width .4s}
+.meter.iss{cursor:pointer}
+.meter.iss b{color:var(--warn)}
+.meter.iss.zero b{color:var(--ok)}
+.canvas-dock{position:absolute;right:10px;bottom:10px;z-index:5;display:flex;align-items:center;gap:6px}
+.canvas-dock .zoomer{position:static}
+.canvas-dock .btn{background:var(--panel)}
+.build{display:block}
+.scenes.build-shell{height:100%;grid-template-rows:auto minmax(0,1fr)}
+/* START */
+.brand-home{border:0;background:transparent;padding:0;cursor:pointer;color:inherit;font:inherit;text-align:left}
+.brand-home b{font-size:16px}
+/* COVER: the agent map is the picture, with signals running through it */
+.cover-panel{height:100%;min-height:min(620px,calc(100vh - 90px));position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;
+  background:radial-gradient(900px 600px at 78% 45%,color-mix(in srgb,var(--petrol) 16%,transparent),transparent 65%),linear-gradient(180deg,var(--panel),var(--bg-deep))}
+.cover-text{grid-column:1;grid-row:1;position:relative;z-index:2;padding:clamp(24px,5vw,72px);display:flex;flex-direction:column;align-items:flex-start;gap:22px}
+.cover-text h1 span{display:block;white-space:nowrap}
+.cover-text h1{margin:0;font-size:clamp(30px,3.4vw,56px);line-height:1.04;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+.cover-text p{margin:0;font-size:clamp(15px,1.3vw,19px);line-height:1.55;color:var(--soft);max-width:34ch}
+.cover-go{font-size:16px;padding:12px 22px;border-radius:12px}
+.cover-map{grid-column:1/-1;grid-row:1;position:relative;height:100%;min-height:0;
+  -webkit-mask-image:linear-gradient(90deg,transparent 26%,#000 44%);mask-image:linear-gradient(90deg,transparent 26%,#000 44%)}
+.cover-stage{position:absolute;top:0;left:0;width:1000px;height:650px;transform-origin:0 0;pointer-events:none}
+.cover-stage .node{opacity:.92}
+.cover-stage .edge{stroke:color-mix(in srgb,var(--mint) 40%,transparent);stroke-width:2.4}
+.cover-stage .packet{r:6}
+.cover-stage .node{transition:border-color .5s,box-shadow .5s}
+.cover-stage .edge{transition:stroke .5s}
+.cover-stage .edge.lit{stroke:color-mix(in srgb,var(--mint) 85%,transparent)}
+/* START */
+.start-panel{height:100%;overflow:auto;display:flex}
+.start-in{margin:auto;width:min(1040px,100%);padding:clamp(18px,2.4vw,32px) clamp(20px,3vw,40px);display:flex;flex-direction:column;gap:18px}
+.start-head{display:flex;flex-direction:column;gap:6px}
+.start-in h1{margin:0;font-size:clamp(24px,2.6vw,36px);line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.start-in .lead{margin:0;font-size:16px;color:var(--soft);max-width:62ch}
+.st-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.st-card.line-card{border-color:color-mix(in srgb,var(--mint) 40%,transparent);border-left:5px solid var(--mint);background:color-mix(in srgb,var(--mint) 5%,var(--panel))}
+.st-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.st-h h2{margin:0;font-size:16px;font-weight:700}
+.st-h .from{margin-left:auto;font-size:11.5px;color:var(--mute);border:1px solid var(--line-strong);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.st-card>p{margin:0;font-size:13.5px;color:var(--soft);line-height:1.5}
+/* draw the line: every action gets one of three answers */
+.lines{display:flex;flex-direction:column;gap:5px}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:5px 6px 5px 12px;border-radius:10px;background:color-mix(in srgb,var(--bg) 40%,transparent);border:1px solid transparent}
+.ln>span{font-size:14px;line-height:1.35}
+.ln .seg button{padding:6px 10px;font-size:12px;white-space:nowrap}
+.ln .seg button.on[data-c="alone"]{box-shadow:inset 0 -2px 0 var(--ok)}
+.ln .seg button.on[data-c="ask"]{box-shadow:inset 0 -2px 0 var(--teams)}
+.ln .seg button.on[data-c="never"]{box-shadow:inset 0 -2px 0 var(--warn)}
+.ln .why{grid-column:1/-1;font-size:12.5px;color:var(--soft);display:flex;gap:6px}
+.ln .why b{white-space:nowrap}
+.ln.hit{border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.ln.hit .why b{color:var(--ok)}
+.ln.miss{border-color:color-mix(in srgb,var(--warn) 55%,transparent)}
+.ln.miss .why b{color:var(--warn)}
+.lines.checked .seg{pointer-events:none}
+.line-key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--mute)}
+.line-key i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.line-act{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.line-res{font-size:13px;color:var(--soft)}
+/* the brief: six parts */
+.brief6{display:grid;grid-template-columns:auto minmax(0,1fr);max-width:76ch;gap:7px 14px;margin:0;font-size:13.5px;line-height:1.42}
+.brief6 dt{font-weight:700;color:var(--mint);white-space:nowrap}
+.brief6 dd{margin:0;color:var(--soft)}
+.brief-wrap{display:flex;flex-direction:column;gap:16px}
+.brief-wrap:not([hidden]){animation:pop .45s cubic-bezier(.2,.8,.2,1)}
+.job-act{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+.job-act .btn{font-size:14px;padding:10px 18px}
+.job-act p{margin:0;font-size:13px;color:var(--mute);flex:1 1 260px}
+.job-ok{font-size:13px;font-weight:600;color:var(--ok)}
+.job-ok::before{content:"✓ "}
+.bang{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--warn);color:var(--on-accent);font-weight:800;font-size:11px;vertical-align:1px}
+.card-in{display:flex;flex-direction:column;min-height:0;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.hint{font-size:11px;color:var(--mute)}
+.issues{display:flex;flex-direction:column;gap:6px}
+.palette{display:flex;flex-direction:column;overflow:hidden}
+.pal-groups{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.pg{border:1px solid transparent;border-radius:10px;padding:6px;transition:border-color .3s,background .3s}
+.pg.cur{border-color:color-mix(in srgb,var(--mint) 45%,transparent);background:color-mix(in srgb,var(--mint) 6%,transparent)}
+.pg h3{margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);display:flex;gap:6px;align-items:center}
+.pg h3 span{width:18px;height:18px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:10px}
+.pi{--k:var(--petrol);display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:5px 7px;margin-top:4px;cursor:grab;touch-action:none}
+.pi[data-kind="orch"]{--k:var(--mint)} .pi[data-kind="tool"]{--k:var(--tool)} .pi[data-kind="data"]{--k:var(--data)} .pi[data-kind="guard"]{--k:var(--guard)} .pi[data-kind="human"]{--k:var(--human)}
+.pi .ic{width:24px;height:24px;flex:none;border-radius:7px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k)}
+.pi .ic svg{width:14px;height:14px}
+.pi b{display:block;font-size:12.5px;line-height:1.15}
+.pi small{display:block;color:var(--mute);font-size:10.5px;line-height:1.2}
+.pi:hover{border-color:var(--k)}
+.pi.placed{opacity:.4;cursor:default}
+.pi.placed::after{content:"✓";margin-left:auto;color:var(--ok);font-weight:800;font-size:13px;padding-left:4px}
+.drag-ghost{position:fixed!important;z-index:50;pointer-events:none;opacity:.9}
+.canvas-panel{display:flex;flex-direction:column;position:relative;overflow:hidden}
+.canvas-bar{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.goal{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 12px;border:1px solid color-mix(in srgb,var(--mint) 45%,transparent);border-left:4px solid var(--mint);background:color-mix(in srgb,var(--mint) 8%,var(--panel));border-radius:10px;padding:6px 12px}
+.goal-lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--mint);white-space:nowrap}
+.goal p{margin:0;font-size:14px;color:var(--ink);line-height:1.4}
+.goal p.no{font-size:13px;color:var(--soft)}
+.goal .lbl{display:inline-block;margin-right:8px;color:var(--mint)}
+.goal em{font-style:normal;color:var(--mute)}
+.cbtns{display:flex;gap:6px}
+#bWrap{flex:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.hint-line{font-size:11.5px;color:var(--mute);margin-left:auto}
+.toast{position:absolute;left:50%;top:12px;z-index:6;transform:translateX(-50%);max-width:min(560px,92%);background:var(--panel);border:1px solid var(--line-strong);border-left:4px solid var(--mint);border-radius:10px;padding:10px 14px;font-size:13px;box-shadow:0 12px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s}
+.toast.show{opacity:1}
+.toast.warn{border-left-color:var(--warn)}
+.toast b{display:block;margin-bottom:2px}
+.issue{border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 8%,transparent);border-radius:10px;padding:8px 10px;font-size:12.5px}
+.issue b{display:block;color:var(--warn);font-size:12.5px}
+.issue p{margin:3px 0 6px;color:var(--soft)}
+
+/* RUN */
+.run{display:grid;grid-template-columns:minmax(320px,410px) minmax(0,1fr);gap:12px}
+.chat{display:flex;flex-direction:column;overflow:hidden}
+.chat-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.avatar{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--mint),var(--petrol));color:var(--on-accent);font-weight:800}
+.chat-head .who{flex:1;min-width:0}
+.chat-head .who b{display:block}
+.chat-head .who small{color:var(--mute);font-size:11.5px;display:flex;align-items:center;gap:6px}
+.chat-head .who small i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+.msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msgs>*{flex-shrink:0}
+.msg{max-width:92%;border-radius:14px;padding:10px 12px;font-size:13.5px;min-width:0}
+.msg.u{align-self:flex-end;background:var(--panel-3);border:1px solid var(--line-strong);border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:color-mix(in srgb,var(--mint) 7%,var(--panel-2));border:1px solid color-mix(in srgb,var(--mint) 30%,transparent);border-bottom-left-radius:4px}
+.msg .mh{font-size:10.5px;color:var(--mute);margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg .mh .chip{border:1px solid var(--line-strong);border-radius:999px;padding:1px 7px}
+.msg .mh .chip.raw{border-color:var(--warn);color:var(--warn)}
+.msg .mh .chip.cur{border-color:var(--mint);color:var(--mint)}
+.msg p{margin:0 0 6px}.msg p:last-child{margin:0}
+.msg ul{margin:4px 0 6px;padding-left:18px}
+.typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mute);margin-right:3px;animation:blink 1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes blink{50%{opacity:.25}}
+.slots{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.slot{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 9px}
+.slot .when b{display:block;font-size:12.5px}.slot .when span{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--mint)}
+.slot .who b{display:block;font-size:12.5px}.slot .who small{color:var(--mute);font-size:11px}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 10px;margin:6px 0}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:12.5px}
+.card dt{color:var(--mute)} .card dd{margin:0}
+.card.alert{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.card.alert b{color:var(--bad)}
+.mini-table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+.mini-table th{text-align:left;color:var(--mute);font-weight:600;font-size:11px;padding:3px 4px;border-bottom:1px solid var(--line)}
+.mini-table td{padding:4px;border-bottom:1px solid var(--line);vertical-align:top}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips .btn{font-weight:500}
+.lesson{align-self:stretch;border-radius:12px;padding:10px 12px;font-size:13px;border:1px solid var(--line-strong);background:var(--panel)}
+.lesson b{display:block;margin-bottom:3px}
+.lesson.bad{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel))}
+.lesson.bad b{color:var(--warn)}
+.lesson.good b{color:var(--ok)}
+.lesson.info b{color:var(--petrol)}
+.lesson ul{margin:4px 0;padding-left:18px}
+.lesson .btn{margin-top:8px}
+.divider{align-self:stretch;display:flex;align-items:center;gap:10px;color:var(--mute);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line-strong)}
+.approve{align-self:flex-start;max-width:92%;border:1px solid var(--human);background:color-mix(in srgb,var(--human) 10%,var(--panel));border-radius:12px;padding:10px 12px;font-size:13px}
+.approve b{color:var(--human);display:block;margin-bottom:4px}
+.approve .chips .btn.primary{background:var(--human);border-color:var(--human)}
+/* staff use the agent inside Teams: the chat takes a Teams look */
+/* staff: the chat is a Teams chat (Teams-like look, generic marks) */
+.tm-rail{display:none}
+.tm-ri{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;padding:6px 0;font-size:9.5px;color:var(--tm-mute);font-family:var(--tm-font)}
+.tm-ri svg{width:20px;height:20px}
+.tm-ri.on{color:var(--tm-brand);font-weight:600}
+.tm-ri.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--tm-brand)}
+.tm-ri .bd{position:absolute;top:2px;left:calc(50% + 4px);min-width:15px;height:15px;border-radius:8px;background:var(--tm-badge);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;font-style:normal}
+.run .chat.if-staff{background:var(--tm-canvas);border-color:var(--tm-line);border-top:1px solid var(--tm-line);padding-left:48px;font-family:var(--tm-font)}
+.run .chat.if-staff>.tm-rail{display:flex;position:absolute;left:0;top:0;bottom:0;width:48px;min-width:0;flex-direction:column;align-items:center;gap:2px;padding:8px 0;background:var(--tm-rail);border-right:1px solid var(--tm-line)}
+.run .chat.if-staff>:not(.rail):not(.tm-rail){min-width:252px}
+.run.chat-min .chat.if-staff{padding-left:0}
+.run .chat.if-staff .chat-head{background:var(--tm-pane);border-color:var(--tm-line);padding:8px 12px 0;align-items:flex-start}
+.if-staff .chat-head .avatar{width:32px;height:32px;border-radius:50%;background:var(--tm-brand);color:#fff;margin-top:2px}
+.if-staff .chat-head .who b{font-size:14px;font-weight:600;color:var(--tm-ink)}
+.run .chat.if-staff .zone-tag{color:var(--tm-mute);font-weight:600}
+.tm-tabs{display:flex;gap:14px;margin-top:2px}
+/* a narrow Teams chat: the Patient / Staff switch moves to its own row under the tabs */
+.run .chat .chat-head{container-type:inline-size}
+@container (max-width:320px){
+  .if-staff .chat-head .who{flex-basis:calc(100% - 90px)}
+  .if-staff #persona{order:3;margin:0 0 8px 42px}
+}
+.tm-tabs span{padding:4px 0 6px;color:var(--tm-mute);font-size:13px;border-bottom:2px solid transparent}
+.tm-tabs span.on{color:var(--tm-ink);font-weight:600;border-bottom-color:var(--tm-brand)}
+.run .chat.if-staff .msgs{padding:14px 14px 10px}
+.run .chat.if-staff .suggest,.run .chat.if-staff .composer{border-color:var(--tm-line)}
+.run .chat.if-staff .composer{border-top:0;padding:6px 12px 12px}
+.run .chat.if-staff .composer input{background:var(--tm-bubble);border:0;border-bottom:2px solid transparent;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.18);color:var(--tm-ink);font-family:var(--tm-font)}
+.run .chat.if-staff .composer input:focus{outline:none;border-bottom-color:var(--tm-brand)}
+.run .chat.if-staff #send{background:var(--tm-btn);border-color:var(--tm-btn);color:var(--tm-btn-ink);border-radius:4px}
+#persona button[data-p="staff"].on{box-shadow:inset 0 -2px 0 var(--teams)}
+/* a message sent or received in Teams */
+.run .chat .msg.tm{border:0;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:14px;color:var(--tm-ink);font-family:var(--tm-font);padding:8px 12px 10px}
+.run .chat .msg.tm.u{background:var(--tm-own);max-width:85%}
+.run .chat .msg.tm.a{background:var(--tm-bubble);position:relative;margin-left:40px;max-width:calc(100% - 40px)}
+.msg.tm.a::before{content:"";position:absolute;left:-40px;top:0;width:32px;height:32px;border-radius:50%;
+  background:var(--tm-brand) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='8' width='16' height='12' rx='3'/%3E%3Cpath d='M12 4v4'/%3E%3Ccircle cx='9' cy='14' r='1.2'/%3E%3Ccircle cx='15' cy='14' r='1.2'/%3E%3C/svg%3E") center/18px no-repeat}
+.msg.tm .mh{font-size:12px;color:var(--tm-mute);gap:8px}
+.msg.tm .mh .nm{color:var(--tm-ink);font-weight:600}
+.msg.tm .mh .app,.tp-mh .app{border:1px solid var(--tm-line);border-radius:4px;padding:0 4px;font-size:10px;line-height:15px}
+.msg.tm .btn{border-radius:4px}
+/* the person who decides gets a Teams message, shown over the map as a small Teams window */
+.teams-pop{position:absolute;top:12px;right:12px;z-index:7;width:min(390px,calc(100% - 24px));border:1px solid var(--tm-line);border-radius:8px;overflow:hidden;
+  background:var(--tm-canvas);color:var(--tm-ink);font-family:var(--tm-font);font-size:13px;box-shadow:0 22px 60px -14px rgba(0,0,0,.6),0 4px 14px rgba(0,0,0,.25);
+  transform:translateX(24px);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .35s}
+.teams-pop.show{transform:none;opacity:1}
+.tp-title{display:flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 10px;background:var(--tm-title);border-bottom:1px solid var(--tm-line);font-size:12px}
+.tp-app{width:20px;height:20px;border-radius:5px;background:var(--tm-btn);color:#fff;display:grid;place-items:center;flex:none}
+.tp-app svg{width:12px;height:12px}
+.tp-search{flex:1;min-width:0;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:4px;background:var(--tm-pane);color:var(--tm-mute);border:1px solid var(--tm-line)}
+.tp-search svg{width:12px;height:12px;flex:none}
+.tp-who{color:var(--tm-mute);white-space:nowrap}
+.tp-ini{position:relative;width:24px;height:24px;border-radius:50%;background:#e8a3b8;color:#5c1a33;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.tp-ini i{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:#6bb700;border:2px solid var(--tm-title)}
+.tp-win{display:flex;gap:10px;color:var(--tm-mute);font-size:11px;padding-left:4px}
+.tp-main{display:grid;grid-template-columns:44px minmax(0,1fr)}
+.tp-rail{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;background:var(--tm-rail);border-right:1px solid var(--tm-line)}
+.tp-rail .tm-ri{font-size:9px}
+.tp-rail .tm-ri svg{width:18px;height:18px}
+.tp-pane{display:flex;flex-direction:column;min-width:0}
+.tp-head{display:flex;align-items:center;gap:8px;padding:7px 12px 0;background:var(--tm-pane);border-bottom:1px solid var(--tm-line)}
+.tp-head b{font-weight:600;font-size:13px;padding-bottom:7px}
+.tp-head .tm-tabs{margin:0 0 0 6px;gap:12px}
+.tp-head .tm-tabs span{font-size:12px;padding:0 0 6px}
+.tp-av{width:28px;height:28px;border-radius:50%;background:var(--tm-brand);color:#fff;display:grid;place-items:center;flex:none;align-self:flex-start}
+.tp-head .tp-av{width:24px;height:24px;margin-bottom:7px}
+.tp-thread{padding:12px 12px 4px;display:flex;gap:8px}
+.tp-bub{flex:1;min-width:0;background:var(--tm-bubble);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.18);padding:8px 10px 10px}
+.tp-mh{display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--tm-mute);margin-bottom:6px}
+.tp-mh b{color:var(--tm-ink);font-weight:600}
+.tp-card{border:1px solid var(--tm-line);border-radius:6px;padding:10px 12px;background:var(--tm-pane)}
+.tp-ct{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13.5px;margin-bottom:4px}
+.tp-ct svg{width:15px;height:15px;color:var(--tm-brand);flex:none}
+.tp-q{font-size:13px;line-height:1.45}
+.tp-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tp-acts button{flex:1 1 auto;white-space:nowrap;padding:0 12px;height:30px;border-radius:4px;font:600 13px var(--tm-font);cursor:pointer;border:1px solid var(--tm-line);background:var(--tm-bubble);color:var(--tm-ink)}
+.tp-acts button.pri{background:var(--tm-btn);border-color:var(--tm-btn);color:var(--tm-btn-ink)}
+.tp-acts button:hover{filter:brightness(1.08)}
+.tp-acts button:focus-visible{outline:2px solid var(--tm-brand);outline-offset:2px}
+.tp-card.decided .tp-acts{display:none}
+.tp-status{font-size:12.5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--tm-line)}
+.tp-status:empty{display:none}
+.tp-status.ok{color:var(--ok)}.tp-status.no{color:var(--warn)}
+.tp-compose{margin:6px 12px 12px;padding:7px 10px;border-radius:4px;background:var(--tm-bubble);color:var(--tm-mute);box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:12.5px}
+/* phone: a slimmer Teams window, and room on the map for it */
+@media (max-width:560px){
+  .tp-rail,.tp-compose,.tp-search,.tp-win{display:none}
+  .tp-title{justify-content:flex-end}.tp-title .tp-app{margin-right:auto}
+  .tp-main{grid-template-columns:minmax(0,1fr)}
+  .tp-thread{padding-bottom:12px}
+  .diagram:has(.teams-pop.show) .stage-wrap{height:400px}
+}
+.suggest{border-top:1px solid var(--line);padding:8px 10px;max-height:38%;overflow:auto}
+.suggest summary{cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:700;list-style:none}
+.suggest summary::-webkit-details-marker{display:none}
+.suggest summary::before{content:"▸ ";}
+.suggest details[open] summary::before{content:"▾ "}
+.sg-title{font-size:10.5px;color:var(--mute);margin:8px 0 4px;letter-spacing:.06em;text-transform:uppercase}
+.sg{display:flex;flex-direction:column;gap:5px}
+.sg button{text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:6px 9px;font-size:12.5px;cursor:pointer;color:var(--soft)}
+.sg button:hover{border-color:var(--mint);color:var(--ink)}
+.sg button.gr{border-left:3px solid var(--guard)}
+.composer{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit}
+.composer input::placeholder{color:var(--mute)}
+/* two zones: front stage = chat (mint), behind the scenes = architecture + workflow (purple) */
+.chat{border-top:3px solid var(--mint)}
+.zone-tag{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800}
+.chat .zone-tag{color:var(--mint)}
+.scenes{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0;min-width:0;border-top:3px solid var(--data);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--data) 10%,var(--panel)),color-mix(in srgb,var(--data) 4%,var(--panel-2)))}
+.scenes .zone-tag{color:var(--data)}
+.scenes-head{display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.scenes-head .ttl{flex:1 1 220px;min-width:0}
+.scenes-head .ttl b{display:block;font-size:15px}
+.ctrls{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+.ctrls .grp{display:flex;align-items:center;gap:8px}
+.scenes-body{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(330px,1fr);gap:12px;padding:12px;min-height:0}
+.diagram{position:relative;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--bg) 60%,transparent);min-height:0}
+.diagram .stage-wrap{flex:1}
+.datacard{position:absolute;right:12px;top:10px;z-index:4;width:min(420px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line-strong);border-radius:12px;padding:12px;box-shadow:0 16px 50px rgba(0,0,0,.5)}
+.datacard h4{margin:0 0 2px;font-size:14px}
+.datacard p{margin:0 0 8px;color:var(--mute);font-size:12px}
+.datacard table{width:100%;border-collapse:collapse;font-size:12px}
+.datacard th{text-align:left;font-size:10.5px;color:var(--mute);padding:4px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.06em}
+.datacard td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.datacard td.r{color:var(--warn)} .datacard td.c{color:var(--mint)}
+.datacard .x{position:absolute;right:8px;top:6px;border:0;background:transparent;font-size:18px;cursor:pointer;color:var(--mute)}
+.flow{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.flow-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.flow-head b{font-size:13.5px}
+#flowStatus{font-size:11.5px;color:var(--mute)}
+.fl{list-style:none;margin:0;padding:10px;overflow:auto;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+.fi{--k:var(--petrol);border:1px solid var(--line);border-radius:11px;background:var(--panel-2);transition:border-color .3s,box-shadow .3s}
+.fi[data-kind="orch"]{--k:var(--mint)} .fi[data-kind="tool"]{--k:var(--tool)} .fi[data-kind="data"]{--k:var(--data)} .fi[data-kind="guard"]{--k:var(--guard)} .fi[data-kind="human"]{--k:var(--human)} .fi[data-kind="user"]{--k:var(--user)}
+.fh{display:grid;grid-template-columns:28px minmax(0,1fr) 20px;gap:10px;align-items:center;padding:8px 10px;cursor:pointer;width:100%;border:0;background:transparent;text-align:left;color:var(--ink)}
+.fh .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 18%,transparent);color:var(--k)}
+.fh .ic svg{width:15px;height:15px}
+.fh b{display:block;font-size:13.5px;line-height:1.25}
+.fh small{display:block;font-size:11px;color:var(--mute);margin-top:1px}
+.st{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;line-height:1}
+.fi.live{border-color:var(--k);box-shadow:0 0 0 1px var(--k),0 0 18px color-mix(in srgb,var(--k) 25%,transparent)}
+.fi.live .st{border:2px solid var(--line-strong);border-top-color:var(--k);animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.fi.ok .st{background:var(--ok);color:var(--on-accent)} .fi.ok .st::after{content:"✓"}
+.fi.w .st{background:var(--warn);color:var(--on-accent)} .fi.w .st::after{content:"!"}
+.fi.wt .st{background:var(--human);color:var(--on-accent)} .fi.wt .st::after{content:"…"}
+.fi.w{border-color:color-mix(in srgb,var(--warn) 60%,transparent)}
+.fi.wt{border-color:var(--human)}
+.lvbox{display:none;padding:0 12px 12px 48px;font-size:12.5px;flex-direction:column;gap:6px;min-width:0}
+.fi.open .lvbox{display:flex}
+.lv{opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;min-width:0}
+.lv.in{opacity:1;transform:none}
+.lv .k{color:var(--mute)}
+.quote{font-style:italic;color:var(--ink);border-left:3px solid var(--user);padding-left:8px}
+.think-h{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.thought{font-family:var(--mono);font-size:12px;color:var(--soft);padding-left:14px;position:relative;min-height:1.2em}
+.thought::before{content:"›";position:absolute;left:0;color:var(--k)}
+.thought.w{color:var(--warn)}
+.typing::after{content:"▍";color:var(--k);animation:blink .8s infinite}
+.query{display:flex;align-items:center;gap:8px;color:var(--soft)}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--k);animation:rot .8s linear infinite;flex:none}
+.ok-i{color:var(--ok);font-weight:800;width:12px;flex:none;display:inline-block}
+.ni{color:var(--warn);font-weight:800;width:12px;flex:none;display:inline-block}
+.check,.field,.line{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.note{display:flex;gap:6px;border-left:3px solid var(--warn);padding:5px 8px;background:color-mix(in srgb,var(--warn) 9%,transparent);border-radius:0 6px 6px 0;color:var(--soft)}
+.src{font-size:11px;color:var(--mute)}
+table.scan{width:100%;border-collapse:collapse;font-size:12px}
+table.scan th{text-align:left;color:var(--mute);font-weight:600;font-size:11px;padding:4px;border-bottom:1px solid var(--line)}
+table.scan td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+table.scan tr{transition:background .35s}
+table.scan tr.scanning{background:color-mix(in srgb,var(--k) 24%,transparent)}
+table.scan tr.g td:first-child{box-shadow:inset 3px 0 var(--ok)}
+table.scan tr.w td:first-child{box-shadow:inset 3px 0 var(--warn)}
+.brief{border:1px dashed color-mix(in srgb,var(--k) 60%,transparent);border-radius:9px;padding:7px 9px;display:flex;flex-direction:column;gap:3px}
+.brief small{color:var(--mute);font-size:11px}
+.waitline{display:flex;gap:8px;align-items:center;color:var(--human);font-weight:600}
+.flow .empty{color:var(--mute);font-size:12.5px;padding:14px;line-height:1.5}
+.pill{border:1px solid var(--line-strong);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--soft)}
+.tbl-wrap{overflow-x:auto}
+.flag{color:var(--warn);font-weight:600;border-bottom:1px dashed var(--warn)}
+.okv{color:var(--ok);font-weight:600}
+.notes{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.notes li{border-left:3px solid var(--warn);padding:4px 8px;background:color-mix(in srgb,var(--warn) 8%,transparent);border-radius:0 6px 6px 0;color:var(--soft)}
+.plan{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.plan li{display:flex;gap:8px;align-items:center}
+.plan li i{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line-strong);flex:none;display:grid;place-items:center;font-style:normal;font-size:11px}
+.plan li.d i{background:var(--ok);border-color:var(--ok);color:var(--on-accent)}
+.plan li.d{color:var(--mute)}
+.sms{max-width:320px;background:var(--panel-3);border-radius:12px;padding:10px 12px;font-size:12.5px;white-space:pre-line}
+.sms small{display:block;color:var(--mute);margin-bottom:4px}
+[dir="rtl"]{text-align:right}
+
+/* Design pass. One bold element: the live agent map, with its colour-coded routes like hospital wayfinding lines.
+   Everything around it is quiet: sentence-case labels, flat inner surfaces, borders only where they mean something
+   (the active step, a warning, a person deciding). */
+.zone-tag,.lbl,.goal-lbl,.think-h,.sg-title,.suggest summary,.pg h3,.datacard th,.divider,.issues-card h4{letter-spacing:0;text-transform:none}
+.zone-tag{font-size:12.5px;font-weight:700}
+.lbl{font-size:12.5px;font-weight:600;color:var(--mute)}
+.goal-lbl{font-size:13px;font-weight:700}
+.pg h3{font-size:12.5px;font-weight:700;color:var(--soft)}
+.pg h3 span{border:0;background:var(--panel-3)}
+.sg-title{font-size:12.5px;font-weight:700;color:var(--soft);margin-top:12px}
+.suggest summary{font-size:13px;font-weight:600;color:var(--soft)}
+.divider{font-size:12px}
+.think-h{font-size:12px;font-weight:600}
+.thought{font-family:inherit;font-style:italic;font-size:13px;color:var(--soft)}
+.thought::before{font-style:normal}
+/* flat inner surfaces: the zone panels carry the structure, the cards inside them do not need their own frames */
+.diagram,.flow,.card-in{border-color:transparent;background:color-mix(in srgb,var(--bg) 50%,transparent)}
+.flow-head,.card-in .flow-head{border-bottom-color:transparent}
+/* workflow: finished steps become quiet rows, only the step in progress (or one that needs attention) is framed */
+.fi{border-color:transparent;background:transparent}
+.fi.ok .fh b{font-weight:600;color:var(--soft)}
+.fi.ok .fh .ic{background:transparent}
+.fi.live{background:var(--panel-2)}
+.fi.w{background:color-mix(in srgb,var(--warn) 7%,transparent)}
+.fl{gap:2px}
+/* suggestions read as a list of things to say, not a stack of buttons */
+.sg{gap:0}
+.sg button{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:9px 6px}
+.sg button:hover{background:var(--panel-3)}
+.sg button.gr{border-left:0;box-shadow:inset 3px 0 var(--guard);padding-left:12px}
+/* the map: heavier routes so the signal path is readable from the back of the room */
+.edge{stroke-width:2}
+.edge.used{stroke-width:3.2}
+.edge.live{stroke-width:3.6}
+.packet{r:8}
+
+/* today vs tomorrow: who does the work */
+.row2{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;min-width:0}
+.row2 .step-now{flex:1 1 360px;display:block;line-height:1.6}
+.row2 .step-now>*{margin-right:8px}
+.row2r{display:flex;align-items:center;justify-content:flex-end;gap:8px 12px;flex-wrap:wrap}
+.seg.era button{padding:5px 12px}
+.seg.era button.on[data-era="today"]{box-shadow:inset 0 -2px 0 var(--user)}
+.pi small.today{color:var(--soft);font-style:italic;margin-top:2px}
+.pi.placed small.today{color:inherit}
+.era-today .edge{stroke:var(--mute);stroke-dasharray:3 6;stroke-width:2}
+.era-today .node[data-kind="user"]{border-style:solid;background:color-mix(in srgb,var(--user) 7%,var(--panel-2))}
+.era-today .node[data-kind="tool"],.era-today .node[data-kind="data"]{opacity:.7}
+.stage.flip-out .node{transition:transform .2s ease-in,opacity .2s ease-in;transform:translate(-50%,-50%) scaleX(0);opacity:0}
+.node.flip-in{animation:flipin .42s cubic-bezier(.2,.8,.2,1) both}
+@keyframes flipin{from{transform:translate(-50%,-50%) scaleX(0);opacity:0}}
+.node.lead{animation:flipin .42s cubic-bezier(.2,.8,.2,1) both,lead 1.2s ease 2}
+@keyframes lead{50%{box-shadow:0 0 0 3px var(--human),0 0 34px color-mix(in srgb,var(--human) 60%,transparent)}}
+
+/* chat as a grey front-of-house panel that folds into a rail while the agent works */
+:root{--chat-bg:#272a35;--chat-bg-2:#343744;--chat-line:rgba(255,255,255,.10)}
+:root[data-theme="light"]{--chat-bg:#e7e9ef;--chat-bg-2:#d9dce5;--chat-line:rgba(0,0,40,.10)}
+.run{grid-template-columns:clamp(320px,28vw,410px) minmax(0,1fr);transition:grid-template-columns .6s cubic-bezier(.65,0,.35,1)}
+.run.chat-min{grid-template-columns:60px minmax(0,1fr)}
+.run .chat{position:relative;background:var(--chat-bg);border-color:var(--chat-line);border-top:3px solid var(--user)}
+.run .chat .zone-tag{color:var(--soft)}
+.run .chat .chat-head,.run .chat .suggest,.run .chat .composer{border-color:var(--chat-line)}
+.run .chat .msg.u{background:var(--chat-bg-2);border-color:var(--chat-line)}
+.run .chat .composer input{background:var(--chat-bg-2)}
+.run .chat .sg button:hover{background:var(--chat-bg-2)}
+.run .chat>:not(.rail){min-width:300px;transition:opacity .22s ease .3s}
+.run.chat-min .chat>:not(.rail){opacity:0;pointer-events:none;transition-delay:0s}
+.chat-tg{width:32px;height:32px;flex:none;background:transparent}
+.chat-tg svg,.rail .icon-btn svg{width:16px;height:16px}
+.rail{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 0;opacity:0;pointer-events:none;transition:opacity .15s}
+.run.chat-min .rail{opacity:1;pointer-events:auto;transition:opacity .3s ease .35s}
+.rail .icon-btn{width:34px;height:34px;background:var(--chat-bg-2)}
+.rail .vt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px;font-weight:600;color:var(--soft);white-space:nowrap}
+.rail .dots{display:flex;flex-direction:column;gap:4px}
+.rail .dots i{width:6px;height:6px;border-radius:50%;background:var(--mint);animation:blink 1s infinite}
+.rail .dots i:nth-child(2){animation-delay:.15s}.rail .dots i:nth-child(3){animation-delay:.3s}
+.rail .btn{padding:5px 8px}
+/* the message in transit between the chat and the map */
+.fly{position:fixed;left:0;top:0;z-index:60;pointer-events:none;max-width:280px;padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--chat-bg-2);color:var(--ink);border:1px solid var(--line-strong);box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 2px color-mix(in srgb,var(--mint) 45%,transparent);will-change:transform,opacity}
+.fly.reply{border-color:var(--mint);background:color-mix(in srgb,var(--mint) 14%,var(--chat-bg-2))}
+.fly.ask{border-color:var(--human);box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 2px color-mix(in srgb,var(--human) 45%,transparent)}
+.msg.pop,.approve.pop{animation:pop .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}}
+.node.land{animation:land .6s ease}
+@keyframes land{40%{box-shadow:0 0 0 4px var(--mint),0 0 36px var(--mint)}}
+
+@media (max-width:1180px){
+  .run.chat-min{grid-template-columns:1fr}
+  .rail,.chat-tg{display:none}
+  .run.chat-min .chat>:not(.rail){opacity:1;pointer-events:auto}
+  html,body{height:auto}
+  .app{height:auto}
+  .view{height:auto}
+  .scenes-body.build-body{grid-template-columns:1fr}
+  .stepper{grid-template-columns:1fr}
+  .step-btns,.meters,.row2r{justify-content:flex-start}
+  .scenes.build-shell{height:auto}
+  .scenes.build-shell .scenes-head{flex-wrap:wrap}
+  .palette{max-height:none}
+  .pal-groups{flex-direction:row;overflow-x:auto}
+  .pg{min-width:210px}
+  #bWrap{height:clamp(340px,62vw,620px);flex:none}
+  .run{grid-template-columns:1fr}
+  .chat{height:min(78vh,720px)}
+  .scenes-body{grid-template-columns:1fr}
+  .diagram .stage-wrap{height:clamp(320px,62vw,620px);flex:none}
+  .flow{max-height:600px}
+}
+@media (max-width:900px){
+  .cover-panel{grid-template-columns:1fr;grid-template-rows:auto minmax(260px,1fr);align-items:start}
+  .cover-text{grid-row:1}
+  .cover-map{grid-row:2;-webkit-mask-image:none;mask-image:none}
+}
+@media (max-width:760px){
+  .start-in{padding:20px 4px}
+  .ln{grid-template-columns:1fr}
+  .ln .seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ln .seg button{white-space:normal;text-align:center;line-height:1.2}
+  .canvas-panel .legend{display:none}
+}
+@media (max-width:560px){
+  .brand small{display:none}
+  .tab{padding:7px 9px;font-size:12.5px}
+  .slot{grid-template-columns:78px minmax(0,1fr)}
+  .slot .btn{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <button class="brand-home" id="brandHome" title="Back to the cover"><b>Agent Experience Lab</b></button>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Workshop blocks">
+      <button class="tab" id="tabStart" role="tab" aria-selected="false"><span class="n">1</span>Fix the use case</button>
+      <button class="tab" id="tabBuild" role="tab" aria-selected="false"><span class="n">2</span>Build the agent</button>
+      <button class="tab" id="tabRun" role="tab" aria-selected="false"><span class="n">3</span>Explore the agent</button>
+    </nav>
+    <span class="sim">Simulation with fictional people, clinics and data</span>
+    <button class="btn sm ghost restart" id="btnRestart" title="Clear the build and the chat, and start the lab again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Restart</span></button>
+    <button class="icon-btn" id="themeToggle" aria-label="Switch between dark and light theme">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- COVER -->
+    <section class="view cover" id="cover" aria-label="Cover">
+      <div class="panel cover-panel">
+        <div class="cover-map" id="coverMap" aria-hidden="true"><div class="cover-stage" id="coverStage"></div></div>
+        <div class="cover-text">
+          <h1><span>Build an agent.</span> <span>Then explore how it works.</span></h1>
+          <p>Design an AI agent for outpatient appointments, referrals and insurance inquiries. Then explore how the agent works under the hood and how its orchestration works in a real system.</p>
+          <button class="btn primary cover-go" id="btnCoverGo">Start the lab</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section class="view start" id="start" aria-label="Start" hidden>
+      <div class="panel start-panel">
+        <div class="start-in">
+          <div class="start-head">
+            <h1>Fix the use case</h1>
+            <p class="lead">A digital agentic solution to help patients and staff book outpatient appointments, follow up on referrals and answer insurance questions, in Arabic and English. Before anything is built, we decide how far the agent may go.</p>
+          </div>
+          <article class="st-card line-card" aria-labelledby="lineH">
+            <div class="st-h"><h2 id="lineH">Agent autonomy level</h2></div>
+            <p>Set the scope: for each task, decide as a room how far the agent may go. Then compare with the reference.</p>
+            <div class="line-key"><span><i style="background:var(--warn)"></i>Out of scope: handled by a person</span><span><i style="background:var(--teams)"></i>With human approval first</span><span><i style="background:var(--ok)"></i>Fully autonomous</span></div>
+            <div class="lines" id="lines"></div>
+            <div class="line-act"><button class="btn primary" id="btnLines">Compare with the reference</button><span class="line-res" id="lineRes" aria-live="polite"></span></div>
+          </article>
+          <div class="brief-wrap" id="briefWrap" hidden>
+            <article class="st-card" aria-labelledby="briefH">
+              <div class="st-h"><h2 id="briefH">The agent's brief</h2></div>
+              <dl class="brief6">
+                <dt>Role</dt><dd>Patient access coordinator for the outpatient clinics.</dd>
+                <dt>Goal</dt><dd>Every request ends in a booked or moved appointment, a tracked referral or a clear answer on coverage.</dd>
+                <dt>Context</dt><dd>Clinic directory, live booking system, referral inbox and insurance rules. Requests come in Arabic or English.</dd>
+                <dt>Rules &amp; limits</dt><dd>The autonomy levels set above.</dd>
+                <dt>Output</dt><dd>A confirmed booking with a reference, or a short answer the patient understands.</dd>
+                <dt>Stop and ask</dt><dd>Red-flag symptoms go to the triage nurse. Anything that cannot be undone goes to the access coordinator in Teams.</dd>
+              </dl>
+            </article>
+            <div class="job-act">
+              <button class="btn primary" id="btnJobStart">Start to build</button><span class="job-ok" id="jobOk" hidden>Use case agreed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCK 1: BUILD -->
+    <section class="view build" id="build" aria-label="Build the agent" hidden>
+      <div class="panel scenes build-shell">
+        <div class="stepper" aria-label="Build guide">
+          <ol class="step-pills" id="steps"></ol>
+          <div class="step-btns" role="group" aria-label="Build actions">
+            <button class="btn sm ghost" id="btnHint">Show a hint</button>
+            <button class="btn sm ghost" id="btnRef">Complete with reference</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button class="btn sm ghost" id="btnTidy">Tidy up</button>
+            <button class="btn sm ghost" id="btnClear">Start over</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button class="btn sm primary" id="btnGoRun">Explore the agent</button>
+          </div>
+          <div class="row2">
+          <div class="step-now" id="stepNow"></div>
+          <div class="row2r">
+            <div class="meters" id="meters"></div>
+          </div>
+          </div>
+        </div>
+        <div class="scenes-body build-body">
+          <aside class="card-in palette" aria-label="Components">
+            <div class="flow-head"><b>Components</b><span class="hint">Drag or tap</span></div>
+            <div class="pal-groups" id="pal"></div>
+          </aside>
+          <div class="diagram canvas-panel">
+            <div class="seg era canvas-era" id="era" role="group" aria-label="Who does the work" title="Who does the work: people today, or agents with people in charge">
+              <button data-era="today">Manual workflow</button><button data-era="tomorrow" class="on">Agentic workflow</button>
+            </div>
+            <div class="stage-wrap" id="bWrap"><div class="sizer" id="bSizer"><div class="stage" id="bStage"></div></div></div>
+            <div class="legend" id="legend"></div>
+            <div class="canvas-dock" id="canvasDock"></div>
+            <div class="toast" id="toast" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCK 2: TEST -->
+    <section class="view run" id="run" aria-label="Explore the agent" hidden>
+      <div class="panel chat">
+        <div class="chat-head">
+          <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="14" r="1.2"/></svg></div>
+          <div class="who"><span class="zone-tag" id="whoTag">What users see</span><b id="whoName">Patient access agent</b><small id="whoSub"><i></i>Online</small></div>
+          <div class="seg" id="persona" role="group" aria-label="Ask as">
+            <button data-p="patient" class="on">Patient</button><button data-p="staff">Staff</button>
+          </div>
+          <button class="icon-btn chat-tg" id="chatToggle" aria-label="Fold the chat away" aria-expanded="true" title="Fold the chat away"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        </div>
+        <div class="rail" id="rail" inert>
+          <button class="icon-btn" id="chatOpen" aria-label="Open the chat" title="Open the chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+          <div class="avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="14" r="1.2"/></svg></div>
+          <span class="dots" id="railDots" hidden><i></i><i></i><i></i></span>
+          <span class="vt" id="railTxt">Chat with the agent</span>
+          <button class="btn sm" id="railStop" hidden>Stop</button>
+        </div>
+        <div class="tm-rail" aria-hidden="true"></div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="suggest"><details open id="sgDetails"><summary>Try a request</summary><div id="suggest"></div></details></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="q" name="q" placeholder="Ask the agent something, for example: I need a skin doctor next week" aria-label="Message to the agent">
+          <button class="btn primary" id="send" type="submit">Send</button>
+        </form>
+      </div>
+
+      <div class="panel scenes">
+        <div class="scenes-head">
+          <div class="ttl"><span class="zone-tag">Behind the scenes</span><b>How the agent works on the request</b></div>
+          <div class="ctrls">
+            <div class="grp"><span class="lbl">Data</span>
+              <div class="seg data" id="dataSeg" role="group" aria-label="Data the agent uses">
+                <button data-mode="raw">Raw data<small>as it is today</small></button>
+                <button data-mode="cur" class="on">Curated data<small>semantic layer</small></button>
+              </div>
+              <button class="btn sm ghost" id="btnData">What changes?</button>
+            </div>
+            <div class="grp"><span class="lbl">Speed</span>
+              <div class="seg" id="speedSeg" role="group" aria-label="Animation speed">
+                <button data-s="0.4" class="on">Slow</button><button data-s="1">Normal</button><button data-s="2.4">Fast</button>
+              </div>
+            </div>
+            <div class="grp">
+              <button class="btn sm ghost" id="btnPause" disabled>Pause</button>
+            </div>
+          </div>
+        </div>
+        <div class="scenes-body">
+          <div class="diagram">
+            <div class="teams-pop" id="teamsPop" hidden role="dialog" aria-label="Teams message to the access coordinator">
+              <div class="tp-title" aria-hidden="true">
+                <span class="tp-app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+                <span class="tp-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search</span>
+                <span class="tp-who">Access coordinator</span><span class="tp-ini">AC<i></i></span>
+                <span class="tp-win"><span>&#8212;</span><span>&#9633;</span><span>&#10005;</span></span>
+              </div>
+              <div class="tp-main">
+                <div class="tp-rail" aria-hidden="true"></div>
+                <div class="tp-pane">
+                  <div class="tp-head" aria-hidden="true"><span class="tp-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="14" r="1.2"/></svg></span><b>Patient access agent</b><span class="tm-tabs"><span class="on">Chat</span><span>Files</span></span></div>
+                  <div class="tp-thread">
+                    <span class="tp-av" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="14" r="1.2"/></svg></span>
+                    <div class="tp-bub">
+                      <div class="tp-mh"><b>Patient access agent</b><span class="app">App</span><span id="tpTime"></span></div>
+                      <div class="tp-card" id="tpCard"><div class="tp-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Approval needed</div><div class="tp-q" id="tpQ"></div>
+                        <div class="tp-acts"><button class="pri" id="tpYes" data-yes>Approve</button><button id="tpNo" data-no>Reject</button></div>
+                        <div class="tp-status" id="tpStatus"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tp-compose" aria-hidden="true">Type a message</div>
+                </div>
+              </div>
+            </div>
+            <div class="datacard" id="dataCard" hidden>
+              <button class="x" id="dataX" aria-label="Close">×</button>
+              <h4>Same agent, same model. Only the data changes.</h4>
+              <p>Illustrative examples of what the agent reads in each setting.</p>
+              <div class="tbl-wrap"><table>
+                <thead><tr><th>Data</th><th>Raw, as it is today</th><th>Curated, semantic layer</th></tr></thead>
+                <tbody>
+                  <tr><td>Patients</td><td class="r">Duplicate records for the same person</td><td class="c">One record per person, matched across systems</td></tr>
+                  <tr><td>Specialties</td><td class="r">Several spellings: DERM, Derma OPD</td><td class="c">One agreed code list</td></tr>
+                  <tr><td>Clinic directory</td><td class="r">Updated by hand, no owner</td><td class="c">Named owner, synced with rosters daily</td></tr>
+                  <tr><td>Slots</td><td class="r">Copied overnight from two systems</td><td class="c">Live from one booking system</td></tr>
+                  <tr><td>Referrals</td><td class="r">Fax and scanned PDFs, free text</td><td class="c">Structured e-referrals, coded reason</td></tr>
+                  <tr><td>Rules</td><td class="r">Old insurance rules still in use</td><td class="c">Versioned rules with owner and start date</td></tr>
+                </tbody>
+              </table></div>
+            </div>
+            <div class="stage-wrap" id="rWrap"><div class="sizer" id="rSizer"><div class="stage" id="rStage"></div></div></div>
+          </div>
+          <div class="flow">
+            <div class="flow-head"><b>Live workflow</b><span id="flowStatus">Waiting for a request</span></div>
+            <ol class="fl" id="flow"></ol>
+            <div class="empty" id="flowEmpty">Send a request in the chat. The agent's steps appear here as it works: what it is thinking, which system it opens and what it finds.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r)=>(r||document).querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const SVGNS='http://www.w3.org/2000/svg';
+
+/* ---------- theme ---------- */
+const root=document.documentElement;
+const savedTheme=store.get('aal-theme');
+if(savedTheme) root.setAttribute('data-theme',savedTheme);
+$('#themeToggle').addEventListener('click',()=>{
+  const next=root.getAttribute('data-theme')==='light'?'dark':'light';
+  root.setAttribute('data-theme',next); store.set('aal-theme',next);
+});
+
+/* ---------- icons ---------- */
+const sv=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICON={
+  user:sv('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'),
+  orch:sv('<circle cx="12" cy="12" r="3"/><circle cx="4" cy="5" r="2"/><circle cx="20" cy="5" r="2"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/><path d="M5.5 6.5l4 3.5M18.5 6.5l-4 3.5M5.5 17.5l4-3.5M18.5 17.5l-4-3.5"/>'),
+  plan:sv('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M3 6l1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>'),
+  mem:sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  agent:sv('<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="9" cy="14" r="1.2"/><circle cx="15" cy="14" r="1.2"/>'),
+  tool:sv('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'),
+  data:sv('<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'),
+  guard:sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+  human:sv('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 11l2 2 4-4"/>')
+};
+
+/* ---------- reference architecture ---------- */
+const NODES={
+  user:{l:'Patient or staff',s:'Asks in the app or portal',k:'user',x:80,y:300,w:140},
+  orch:{l:'Orchestrator',s:'Understands, routes, answers',k:'orch',x:270,y:300,w:165},
+  plan:{l:'Planner',s:'Breaks the job into steps',k:'orch',ic:'plan',x:270,y:140,w:155},
+  mem:{l:'Memory',s:'History and preferences',k:'orch',ic:'mem',x:80,y:470,w:140},
+  ref:{l:'Referral agent',s:'Reads and triages referrals',k:'agent',x:505,y:80,w:165},
+  sch:{l:'Scheduling agent',s:'Finds and books slots',k:'agent',x:505,y:215,w:165},
+  cov:{l:'Coverage agent',s:'Insurance and pre-approval',k:'agent',x:505,y:350,w:165},
+  com:{l:'Communication agent',s:'Messages in Arabic and English',k:'agent',x:505,y:485,w:165},
+  t_inbox:{l:'Referral inbox',s:'Tool: read e-referrals',k:'tool',x:745,y:50,w:150},
+  d_rules:{l:'Referral rules',s:'Urgency and target times',k:'data',x:745,y:112,w:150},
+  t_sched:{l:'Booking system',s:'Tool: find, hold, book',k:'tool',x:745,y:185,w:150},
+  d_dir:{l:'Clinic directory',s:'Doctors, clinics, sessions',k:'data',x:745,y:247,w:150},
+  t_elig:{l:'Eligibility check',s:'Tool: insurer lookup',k:'tool',x:745,y:320,w:150},
+  d_ins:{l:'Insurance rules',s:'What each plan covers',k:'data',x:745,y:382,w:150},
+  t_msg:{l:'SMS and app messages',s:'Tool: send messages',k:'tool',x:745,y:485,w:150},
+  d_ehr:{l:'Patient record',s:'Identity, history, labs',k:'data',x:925,y:150,w:130},
+  guard:{l:'Reviewer and guardrails',s:'Checks every answer',k:'guard',x:270,y:595,w:175},
+  h_coord:{l:'Access coordinator',s:'Approves risky actions',k:'human',x:520,y:595,w:165},
+  h_nurse:{l:'Triage nurse',s:'Takes clinical questions',k:'human',x:745,y:595,w:150}
+};
+const DX={
+  dx_diag:{l:'Diagnosis agent',s:'Suggests diagnoses',k:'agent',x:925,y:290,w:140,why:'Out of scope. Diagnosis is a clinical decision with no safe undo, so it sits in the slow lane. An access agent books and routes; clinicians diagnose.'},
+  dx_mkt:{l:'Campaign agent',s:'Sends health promotions',k:'agent',x:925,y:400,w:140,why:'A different job. Promotions need their own consent rules and owner. Keep this agent focused on access.'},
+  dx_write:{l:'Full record write access',s:'Tool: edit any record',k:'tool',x:80,y:120,w:140,why:'Too much power. The agent only needs to book slots and read referral status. Give it the narrowest access that does the job.'},
+  dx_web:{l:'Public web search',s:'Tool: search the internet',k:'tool',x:925,y:510,w:140,why:'Unapproved sources. Answers about clinics, rules and coverage must come from our own data, not from whatever is online.'},
+  dx_pay:{l:'Staff payroll',s:'Salaries and contracts',k:'data',x:925,y:605,w:140,why:'Not needed for this job, and sensitive. Every extra data source is extra risk with no benefit.'}
+};
+const DEF=id=>NODES[id]||DX[id];
+/* who does each part of the job today, before agents: shown on the palette cards and in the "Today" view of the canvas */
+const TODAY={
+  user:{l:'Patient or staff',s:'Calls, emails or walks in'},
+  orch:{l:'Call-centre agent',s:'Takes the call, passes it on',p:1},
+  plan:{l:'Senior coordinator',s:'Decides what happens first',p:1},
+  mem:{l:'Call notes',s:'Scattered across inboxes',k:'data',ic:'data'},
+  ref:{l:'Referral desk',s:'Reads faxes and e-referrals',p:1},
+  sch:{l:'Scheduler',s:'Searches slots screen by screen',p:1},
+  cov:{l:'Insurance clerk',s:'Phones insurers for approval',p:1},
+  com:{l:'Front desk',s:'Calls patients back',p:1},
+  guard:{l:'Team lead',s:'Spot-checks a few cases',p:1},
+  h_coord:{l:'Access coordinator',s:'Chases every open case',p:1},
+  h_nurse:{l:'Triage nurse',s:'Takes clinical questions',p:1},
+  dx_diag:{l:'Doctor',s:'Diagnoses in clinic',p:1},
+  dx_mkt:{l:'Marketing team',s:'Runs health campaigns',p:1}
+};
+['t_inbox','t_sched','t_elig','t_msg','dx_write','dx_web'].forEach(id=>{TODAY[id]={s:'Used by hand'};});
+['d_rules','d_dir','d_ins','d_ehr','dx_pay'].forEach(id=>{TODAY[id]={s:'Looked up by hand'};});
+let ERA='tomorrow';
+const SHOW=id=>{const d=DEF(id),t=TODAY[id]; if(ERA!=='today'||!t) return d; return t.p?{...d,...t,k:'user',ic:'user'}:{...d,...t};};
+const REF_IDS=Object.keys(NODES).filter(id=>id!=='user');
+const REF_EDGES=[['user','orch'],['orch','plan'],['orch','mem'],['orch','ref'],['orch','sch'],['orch','cov'],['orch','com'],
+  ['ref','t_inbox'],['ref','d_rules'],['ref','d_ehr'],['sch','t_sched'],['sch','d_dir'],['sch','d_ehr'],['cov','t_elig'],['cov','d_ins'],
+  ['com','t_msg'],['orch','guard'],['guard','h_coord'],['guard','h_nurse']];
+const ekey=(a,b)=>[a,b].sort().join('|');
+const REF_SET=new Set(REF_EDGES.map(e=>ekey(e[0],e[1])));
+const KIND_NAME={user:'Person',orch:'Coordination',agent:'Specialist agent',tool:'Tool',data:'Data',guard:'Guardrail',human:'Person in the loop'};
+const PAL=[
+  {n:2,t:'Coordination',ids:['orch','plan','mem']},
+  {n:3,t:'Specialist agents',ids:['ref','dx_diag','sch','cov','com','dx_mkt']},
+  {n:4,t:'Tools',ids:['t_sched','dx_web','t_inbox','t_elig','dx_write','t_msg']},
+  {n:5,t:'Data',ids:['d_ehr','d_rules','dx_pay','d_dir','d_ins']},
+  {n:6,t:'Guardrails and people',ids:['h_coord','guard','h_nurse']}
+];
+const STEPS=[
+  {n:1,s:'Use case',t:'Agree the use case',q:'What should this agent achieve, and what is out of scope?',note:'Fix the use case in step 1, then confirm.'},
+  {n:2,s:'Coordination',t:'Add the coordination layer',q:'Who reads every request first and decides who handles it?',need:['orch','plan','mem']},
+  {n:3,s:'Specialists',t:'Add specialist agents',q:'Which tasks repeat every day in patient access?',need:['ref','sch','cov','com']},
+  {n:4,s:'Tools',t:'Give them tools',q:'What must each agent be able to do in our systems?',need:['t_inbox','t_sched','t_elig','t_msg']},
+  {n:5,s:'Data',t:'Give them data',q:'What must each agent know to do it well?',need:['d_rules','d_dir','d_ins','d_ehr']},
+  {n:6,s:'Guardrails',t:'Add guardrails and people',q:'Where must a person decide?',need:['guard','h_coord','h_nurse']},
+  {n:7,s:'Connect',t:'Connect everything',q:'Who talks to whom? Trace one request from the patient to the answer.',links:true}
+];
+
+/* ---------- stage helpers ---------- */
+function anchor(n,o){
+  const dx=o.x-n.x,dy=o.y-n.y,hw=(n.w||150)/2,hh=24;
+  if(Math.abs(dx)/hw>=Math.abs(dy)/hh) return {x:n.x+Math.sign(dx)*hw,y:n.y,h:true};
+  return {x:n.x,y:n.y+Math.sign(dy)*hh,h:false};
+}
+function pathD(a,b){
+  const p=anchor(a,b),q=anchor(b,a);
+  const c=p.h?Math.max(28,Math.abs(q.x-p.x)*.45):Math.max(28,Math.abs(q.y-p.y)*.45);
+  const c1=p.h?[p.x+Math.sign(q.x-p.x)*c,p.y]:[p.x,p.y+Math.sign(q.y-p.y)*c];
+  const c2=q.h?[q.x+Math.sign(p.x-q.x)*c,q.y]:[q.x,q.y+Math.sign(p.y-q.y)*c];
+  return `M${p.x},${p.y} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${q.x},${q.y}`;
+}
+function midPt(a,b){
+  const n=pathD(a,b).match(/-?[\d.]+/g).map(Number); // p, c1, c2, q
+  return {x:(n[0]+3*n[2]+3*n[4]+n[6])/8,y:(n[1]+3*n[3]+3*n[5]+n[7])/8};
+}
+function nodeEl(id,n,pos,build){
+  const el=document.createElement('div');
+  el.className='node'+(DX[id]?' dx':''); el.dataset.id=id; el.dataset.kind=n.k;
+  el.style.left=pos.x+'px'; el.style.top=pos.y+'px'; el.style.setProperty('--w',(n.w||150)+'px');
+  el.innerHTML=`<span class="ic">${ICON[n.ic||n.k]}</span><span class="tx"><b>${esc(n.l)}</b><small>${esc(n.s)}</small></span>`+
+    (build?`<button class="rm" aria-label="Remove ${esc(n.l)}">×</button><span class="hd" title="Drag to another component to connect"></span>`:'')+
+    (build&&DX[id]?`<span class="dxm" data-dx="${id}" aria-label="Why this may not belong">!</span>`:'');
+  return el;
+}
+function fitter(wrap,sizer,stage,minS){
+  let zoom=1,label=null;
+  const f=()=>{
+    const cs=getComputedStyle(wrap),pb=(parseFloat(cs.paddingBottom)||0)+(parseFloat(cs.paddingTop)||0); const w=wrap.clientWidth-4,h=wrap.clientHeight-4-pb;
+    let s=Math.min(w/1000,h>60?h/650:w/1000);
+    s=Math.max(minS,Math.min(s,1.7))*zoom;
+    stage.style.transform=`scale(${s})`; sizer.style.width=(1000*s)+'px'; sizer.style.height=(650*s)+'px'; stage._s=s;
+    if(label) label.textContent=Math.round(zoom*100)+'%';
+  };
+  f.setZoom=z=>{zoom=Math.max(.6,Math.min(2.5,z)); f();};
+  wrap.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return; e.preventDefault(); f.setZoom(zoom*(e.deltaY<0?1.12:1/1.12));},{passive:false});
+  const z=document.createElement('div'); z.className='zoomer'; z.setAttribute('role','group'); z.setAttribute('aria-label','Zoom'); z.title='Zoom. Tip: Ctrl + mouse wheel';
+  z.innerHTML='<button type="button" data-z="out" aria-label="Zoom out">−</button><span class="zl">100%</span><button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" class="fit" data-z="fit">Fit</button>';
+  z.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; const k=b.dataset.z; f.setZoom(k==='in'?zoom*1.2:k==='out'?zoom/1.2:1);});
+  wrap.parentElement.appendChild(z); label=z.querySelector('.zl');
+  if(window.ResizeObserver) new ResizeObserver(f).observe(wrap); else window.addEventListener('resize',f);
+  f(); return f;
+}
+function toStage(stage,cx,cy){const r=stage.getBoundingClientRect(),s=stage._s||1;return {x:(cx-r.left)/s,y:(cy-r.top)/s};}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- legend ---------- */
+$('#legend').innerHTML=['orch','agent','tool','data','guard','human'].map(k=>`<span><i style="background:var(--${k==='orch'?'mint':k==='agent'?'petrol':k})"></i>${KIND_NAME[k]}</span>`).join('');
+
+/* =========================================================
+   BLOCK 1: BUILD
+   ========================================================= */
+const bStage=$('#bStage');
+// every visit starts from an empty build; nothing is kept between visits (only the light/dark choice)
+try{localStorage.removeItem('aal-build');}catch(e){}
+const B={nodes:{user:{x:80,y:300}},links:[],job:false};
+if(!B.nodes||!B.nodes.user) {B.nodes={user:{x:80,y:300}};B.links=[];}
+const saveB=()=>{};
+let selNode=null,selEdge=null,connectFrom=null;
+const fitB=fitter($('#bWrap'),$('#bSizer'),bStage,.45);
+$('#canvasDock').appendChild($('#build .zoomer'));
+
+function toast(title,text,warn){
+  const t=$('#toast'); t.className='toast show'+(warn?' warn':'');
+  t.innerHTML=`<b>${esc(title)}</b>${text?esc(text):''}`;
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),warn?6500:2600);
+}
+function linkAdvice(a,b){
+  if(DX[a]||DX[b]) return 'This component does not belong in this job, so the link adds risk.';
+  const has=(x)=>a===x||b===x, other=x=>a===x?b:a;
+  if(has('user')) return 'Patients and staff only talk to the orchestrator. It decides who does the work and checks every answer.';
+  const kA=DEF(a).k,kB=DEF(b).k;
+  if(kA==='agent'&&kB==='agent') return 'Specialists do not call each other here. The orchestrator coordinates them, so every step stays traceable.';
+  if(kA==='human'||kB==='human') return 'People are brought in by the reviewer, so every approval follows the same rules.';
+  if((kA==='agent'&&(kB==='tool'||kB==='data'))||(kB==='agent'&&(kA==='tool'||kA==='data'))){
+    const ag=kA==='agent'?a:b, rs=ag===a?b:a;
+    return `${DEF(ag).l} does not need ${DEF(rs).l} for its job. Give each agent only what it uses.`;
+  }
+  if(has('orch')&&['tool','data'].includes(DEF(other('orch')).k)) return 'The orchestrator delegates. The specialist that needs this resource should hold the connection.';
+  return 'This link is not part of the reference design.';
+}
+
+function renderBuild(){
+  bStage.innerHTML='';
+  const svg=document.createElementNS(SVGNS,'svg'); svg.setAttribute('class','edges'); svg.setAttribute('viewBox','0 0 1000 650');
+  bStage.appendChild(svg);
+  B.links.forEach(([a,b])=>{
+    if(!B.nodes[a]||!B.nodes[b]) return;
+    const k=ekey(a,b),A={...DEF(a),...B.nodes[a]},Bn={...DEF(b),...B.nodes[b]};
+    const p=document.createElementNS(SVGNS,'path'); p.setAttribute('d',pathD(A,Bn));
+    p.setAttribute('class','edge'+(REF_SET.has(k)?' used':' bad')+(selEdge===k?' sel':'')); p.dataset.k=k;
+    const h=document.createElementNS(SVGNS,'path'); h.setAttribute('d',pathD(A,Bn)); h.setAttribute('class','hit'); h.dataset.k=k;
+    svg.appendChild(p); svg.appendChild(h);
+  });
+  bStage.classList.toggle('era-today',ERA==='today');
+  Object.keys(B.nodes).forEach(id=>{
+    const el=nodeEl(id,SHOW(id),B.nodes[id],true);
+    if(selNode===id) el.classList.add('sel');
+    const t=TODAY[id]; if(t&&t.l&&ERA!=='today') el.title=`Manual workflow: ${t.l}. ${t.s}.`;
+    if(renderBuild.flip){
+      el.classList.add('flip-in'); el.style.animationDelay=Math.round(B.nodes[id].x/1000*420)+'ms';
+      if(ERA==='tomorrow'&&DEF(id).k==='human'){el.classList.add('lead'); el.style.animationDelay=el.style.animationDelay+','+(parseInt(el.style.animationDelay)+500)+'ms';}
+    }
+    bStage.appendChild(el);
+  });
+  renderBuild.flip=false;
+  // a "!" on every link that is not in the reference design; pointing at it repeats the advice
+  B.links.forEach(([a,b])=>{
+    const k=ekey(a,b); if(REF_SET.has(k)||!B.nodes[a]||!B.nodes[b]) return;
+    const m=midPt({...DEF(a),...B.nodes[a]},{...DEF(b),...B.nodes[b]});
+    const s=document.createElement('span'); s.className='dxm lk'; s.dataset.lk=k; s.textContent='!';
+    s.setAttribute('aria-label','Why this link may not belong'); s.style.left=m.x+'px'; s.style.top=m.y+'px'; bStage.appendChild(s);
+  });
+  if(selEdge){
+    const [a,b]=selEdge.split('|'); const A=B.nodes[a],Bb=B.nodes[b];
+    if(A&&Bb){const btn=document.createElement('button');btn.className='edge-rm';btn.textContent='Remove link';
+      btn.style.left=((A.x+Bb.x)/2)+'px';btn.style.top=((A.y+Bb.y)/2)+'px';btn.dataset.rmk=selEdge;bStage.appendChild(btn);}
+  }
+  bStage.classList.toggle('connecting',!!connectFrom);
+}
+function updateEdgesFor(id){
+  bStage.querySelectorAll('path').forEach(p=>{
+    const k=p.dataset.k; if(!k) return; const [a,b]=k.split('|');
+    if(a===id||b===id) p.setAttribute('d',pathD({...DEF(a),...B.nodes[a]},{...DEF(b),...B.nodes[b]}));
+  });
+}
+function place(id,x,y){
+  if(B.nodes[id]) return;
+  B.nodes[id]={x:clamp(x,70,930),y:clamp(y,30,620)};
+  if(DX[id]) toast(`${DX[id].l}: does this belong here?`,DX[id].why,true);
+  else toast(`Added: ${NODES[id].l}`,'');
+  saveB(); renderBuild(); renderPalette(); updateGuide();
+}
+function removeNode(id){
+  if(id==='user') return;
+  delete B.nodes[id]; B.links=B.links.filter(l=>l[0]!==id&&l[1]!==id);
+  if(selNode===id) selNode=null; saveB(); renderBuild(); renderPalette(); updateGuide();
+}
+function addLink(a,b){
+  if(a===b) return;
+  const k=ekey(a,b);
+  if(B.links.some(l=>ekey(l[0],l[1])===k)){toast('Already connected','');return;}
+  B.links.push([a,b]);
+  if(REF_SET.has(k)) toast(`Connected: ${DEF(a).l} and ${DEF(b).l}`,'');
+  else toast('Check this link',linkAdvice(a,b),true);
+  saveB(); renderBuild(); updateGuide();
+}
+function removeLink(k){B.links=B.links.filter(l=>ekey(l[0],l[1])!==k); selEdge=null; saveB(); renderBuild(); updateGuide();}
+
+/* palette */
+function renderPalette(){
+  const cur=currentStep();
+  $('#pal').innerHTML=PAL.map(g=>`<div class="pg${cur===g.n?' cur':''}"><h3><span>${g.n}</span>${esc(g.t)}</h3>${g.ids.map(id=>{const n=DEF(id);
+    return `<button class="pi${B.nodes[id]?' placed':''}" data-id="${id}" data-kind="${n.k}" ${B.nodes[id]?'aria-disabled="true"':''}><span class="ic">${ICON[n.ic||n.k]}</span><span><b>${esc(n.l)}</b><small>${esc(n.s)}</small>${TODAY[id]&&TODAY[id].p?`<small class="today">Manual: ${esc(TODAY[id].l.toLowerCase())}</small>`:''}</span></button>`;}).join('')}</div>`).join('');
+}
+let pdrag=null;
+$('#pal').addEventListener('pointerdown',e=>{
+  const b=e.target.closest('.pi'); if(!b||B.nodes[b.dataset.id]) return;
+  e.preventDefault(); b.setPointerCapture(e.pointerId);
+  pdrag={id:b.dataset.id,x0:e.clientX,y0:e.clientY,ghost:null,el:b};
+});
+$('#pal').addEventListener('pointermove',e=>{
+  if(!pdrag) return;
+  if(!pdrag.ghost&&Math.hypot(e.clientX-pdrag.x0,e.clientY-pdrag.y0)>6){
+    const n=DEF(pdrag.id); const g=nodeEl(pdrag.id,n,{x:0,y:0},false); g.classList.add('drag-ghost'); document.body.appendChild(g); pdrag.ghost=g;
+  }
+  if(pdrag.ghost){pdrag.ghost.style.left=e.clientX+'px';pdrag.ghost.style.top=e.clientY+'px';}
+});
+$('#pal').addEventListener('pointerup',e=>{
+  if(!pdrag) return; const d=pdrag; pdrag=null;
+  if(d.ghost){
+    d.ghost.remove();
+    const r=$('#bWrap').getBoundingClientRect();
+    if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){const p=toStage(bStage,e.clientX,e.clientY);place(d.id,p.x,p.y);}
+  } else { const n=DEF(d.id); place(d.id,n.x,n.y); }
+});
+$('#pal').addEventListener('click',e=>{if(e.detail!==0)return;const b=e.target.closest('.pi');if(!b||B.nodes[b.dataset.id])return;const n=DEF(b.dataset.id);place(b.dataset.id,n.x,n.y);});
+$('#pal').addEventListener('pointercancel',()=>{if(pdrag&&pdrag.ghost)pdrag.ghost.remove();pdrag=null;});
+
+/* canvas interactions */
+let ndrag=null,cdrag=null;
+bStage.addEventListener('pointerdown',e=>{
+  const rmE=e.target.closest('.edge-rm'); if(rmE){e.stopPropagation();removeLink(rmE.dataset.rmk);return;}
+  const rm=e.target.closest('.rm'); if(rm){removeNode(rm.closest('.node').dataset.id);return;}
+  const hd=e.target.closest('.hd');
+  const node=e.target.closest('.node');
+  const hit=e.target.closest('.hit');
+  if(connectFrom&&node&&!hd){const id=node.dataset.id;const from=connectFrom;connectFrom=null;if(id!==from)addLink(from,id);else renderBuild();return;}
+  if(hd&&node){
+    e.preventDefault(); const id=node.dataset.id; bStage.setPointerCapture(e.pointerId);
+    const svg=bStage.querySelector('svg'); const tmp=document.createElementNS(SVGNS,'path'); tmp.setAttribute('class','tmp'); svg.appendChild(tmp);
+    cdrag={id,tmp,x0:e.clientX,y0:e.clientY,moved:false}; return;
+  }
+  if(node){
+    e.preventDefault(); const id=node.dataset.id; bStage.setPointerCapture(e.pointerId);
+    const p=toStage(bStage,e.clientX,e.clientY);
+    ndrag={id,el:node,dx:p.x-B.nodes[id].x,dy:p.y-B.nodes[id].y,x0:e.clientX,y0:e.clientY,moved:false}; return;
+  }
+  if(hit){selEdge=hit.dataset.k;selNode=null;renderBuild();return;}
+  if(selNode||selEdge||connectFrom){selNode=null;selEdge=null;connectFrom=null;renderBuild();}
+});
+bStage.addEventListener('pointermove',e=>{
+  if(ndrag){
+    if(Math.hypot(e.clientX-ndrag.x0,e.clientY-ndrag.y0)>4) ndrag.moved=true;
+    if(!ndrag.moved) return;
+    const p=toStage(bStage,e.clientX,e.clientY);
+    const x=clamp(p.x-ndrag.dx,70,930),y=clamp(p.y-ndrag.dy,30,620);
+    B.nodes[ndrag.id]={x,y}; ndrag.el.style.left=x+'px'; ndrag.el.style.top=y+'px'; updateEdgesFor(ndrag.id);
+  } else if(cdrag){
+    if(Math.hypot(e.clientX-cdrag.x0,e.clientY-cdrag.y0)>5) cdrag.moved=true;
+    const s=B.nodes[cdrag.id],w=(DEF(cdrag.id).w||150)/2,p=toStage(bStage,e.clientX,e.clientY);
+    cdrag.tmp.setAttribute('d',`M${s.x+w},${s.y} L${p.x},${p.y}`);
+  }
+});
+bStage.addEventListener('pointerup',e=>{
+  if(ndrag){const d=ndrag;ndrag=null; if(d.moved) saveB(); else {selNode=selNode===d.id?null:d.id;selEdge=null;renderBuild();}}
+  else if(cdrag){
+    const d=cdrag;cdrag=null; d.tmp.remove();
+    if(!d.moved){connectFrom=d.id;renderBuild();toast(`Connecting from ${DEF(d.id).l}`,'Now tap the component to connect to.');return;}
+    const t=document.elementFromPoint(e.clientX,e.clientY); const tn=t&&t.closest&&t.closest('#bStage .node');
+    if(tn&&tn.dataset.id!==d.id) addLink(d.id,tn.dataset.id);
+  }
+});
+document.addEventListener('keydown',e=>{
+  if($('#build').hidden) return;
+  if((e.key==='Delete'||e.key==='Backspace')&&document.activeElement.tagName!=='INPUT'){
+    if(selEdge) removeLink(selEdge); else if(selNode) removeNode(selNode);
+  }
+  if(e.key==='Escape'){connectFrom=null;selNode=null;selEdge=null;renderBuild();}
+});
+
+/* guide */
+function stepDone(s){
+  if(s.n===1) return B.job||Object.keys(B.nodes).length>1;
+  if(s.need) return s.need.every(id=>B.nodes[id]);
+  if(s.links) return REF_EDGES.every(([a,b])=>B.links.some(l=>ekey(l[0],l[1])===ekey(a,b)));
+  return false;
+}
+function currentStep(){const s=STEPS.find(s=>!stepDone(s));return s?s.n:8;}
+function missingLinks(){return REF_EDGES.filter(([a,b])=>!B.links.some(l=>ekey(l[0],l[1])===ekey(a,b)));}
+function updateGuide(){
+  const cur=currentStep();
+  $('#steps').innerHTML=STEPS.map(s=>{
+    const done=stepDone(s), st=done?'done':s.n===cur?'cur':'';
+    return `<li class="${st}"><span class="sn">${done?'✓':s.n}</span>${esc(s.s)}</li>`;
+  }).join('');
+  const s=STEPS.find(x=>x.n===cur);
+  let now;
+  const people=Object.keys(B.nodes).filter(id=>TODAY[id]&&TODAY[id].p).length;
+  if(ERA==='today') now=`<b>Manual workflow:</b><span>${people>1?`${people} people pass`:'People pass'} each request along by phone, email and spreadsheets. Every handover waits until someone is free.</span>`;
+  else if(!s) now=`<b>Agentic workflow:</b><span>Agents do the routine steps. People set the job, approve risky steps, handle exceptions and improve the rules.</span>`;
+  else {
+    let extra='';
+    if(s.n===1) extra=`<button class="btn sm primary" id="btnJob">Use case agreed</button>`;
+    else if(s.need){const miss=s.need.filter(id=>!B.nodes[id]).length; extra=`<em>${miss} still to add. Not every component in the list belongs.</em>`;}
+    else if(s.links) extra=`<em>${missingLinks().length} of ${REF_EDGES.length} links still missing. Drag from a component’s dot onto another; tap a link to remove it.</em>`;
+    now=`<b>Step ${s.n}: ${esc(s.t)}</b><span>${esc(s.q)}</span>${extra}`;
+  }
+  $('#stepNow').innerHTML=now;
+  const placed=REF_IDS.filter(id=>B.nodes[id]).length;
+  const okLinks=B.links.filter(l=>REF_SET.has(ekey(l[0],l[1]))).length;
+  const dxs=Object.keys(B.nodes).filter(id=>DX[id]);
+  const badLinks=B.links.filter(l=>!REF_SET.has(ekey(l[0],l[1])));
+  const iss=dxs.length+badLinks.length;
+  $('#meters').innerHTML=
+    `<span class="meter"><b>${placed}/${REF_IDS.length}</b>components<span class="barx"><i style="width:${placed/REF_IDS.length*100}%"></i></span></span>`+
+    `<span class="meter"><b>${okLinks}/${REF_EDGES.length}</b>connections<span class="barx"><i style="width:${okLinks/REF_EDGES.length*100}%"></i></span></span>`+
+    `<span class="meter iss${iss?'':' zero'}"><b>${iss}</b>to check</span>`;
+  document.querySelectorAll('.pg').forEach((g,i)=>g.classList.toggle('cur',PAL[i].n===cur));
+  const bj=$('#btnJob'); if(bj) bj.onclick=()=>{B.job=true;saveB();updateGuide();renderPalette();};
+  const agreed=stepDone(STEPS[0]); $('#jobOk').hidden=!agreed; if(agreed) $('#briefWrap').hidden=false;
+  $('#btnJobStart').textContent=agreed?'Continue building':'Start to build';
+}
+function explainMark(m){
+  if(m.dataset.dx){const d=DX[m.dataset.dx]; toast(`${d.l}: does this belong here?`,d.why+' Select it and press × to remove it.',true);}
+  else if(m.dataset.lk){const [a,b]=m.dataset.lk.split('|'); toast(`Check this link: ${DEF(a).l} and ${DEF(b).l}`,linkAdvice(a,b)+' Tap the link to remove it.',true);}
+}
+bStage.addEventListener('mouseover',e=>{const m=e.target.closest('.dxm'); if(m&&!(e.relatedTarget&&m.contains(e.relatedTarget))) explainMark(m);});
+bStage.addEventListener('pointerdown',e=>{const m=e.target.closest('.dxm'); if(m&&e.pointerType!=='mouse'){e.stopPropagation();explainMark(m);}},true);
+$('#era').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-era]'); if(!b||b.dataset.era===ERA) return;
+  $('#era').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  const go=()=>{ERA=b.dataset.era; renderBuild.flip=!REDUCE; renderBuild(); updateGuide();};
+  if(REDUCE) return go();
+  bStage.classList.add('flip-out'); setTimeout(()=>{bStage.classList.remove('flip-out'); go();},220);
+});
+$('#meters').addEventListener('click',e=>{if(!e.target.closest('.meter.iss')) return; const m=bStage.querySelector('.dxm'); if(m) explainMark(m);});
+function snapAll(addMissing){
+  bStage.classList.add('anim');
+  if(addMissing){
+    REF_IDS.forEach(id=>{B.nodes[id]={x:NODES[id].x,y:NODES[id].y};});
+    Object.keys(B.nodes).forEach(id=>{if(DX[id]) delete B.nodes[id];});
+    B.links=REF_EDGES.map(e=>e.slice()); B.job=true;
+  }
+  Object.keys(B.nodes).forEach(id=>{if(NODES[id]) B.nodes[id]={x:NODES[id].x,y:NODES[id].y};});
+  selNode=selEdge=null; saveB();
+  // move existing elements first so the transition is visible, then rebuild
+  Object.keys(B.nodes).forEach(id=>{const el=bStage.querySelector(`.node[data-id="${id}"]`); if(el){el.style.left=B.nodes[id].x+'px';el.style.top=B.nodes[id].y+'px';}});
+  setTimeout(()=>{bStage.classList.remove('anim');renderBuild();renderPalette();updateGuide();},REDUCE?0:650);
+}
+$('#btnTidy').onclick=()=>{snapAll(false);toast('Tidied up','Components moved to their places in the reference design.');};
+$('#btnRef').onclick=()=>{snapAll(true);toast('Reference design complete','Missing parts added, extras removed, everything connected.');};
+$('#btnClear').onclick=()=>{B.nodes={user:{x:80,y:300}};B.links=[];B.job=false;selNode=selEdge=connectFrom=null;saveB();renderBuild();renderPalette();updateGuide();};
+$('#btnHint').onclick=()=>{
+  const cur=currentStep(), s=STEPS.find(x=>x.n===cur);
+  if(!s){toast('Your agent is complete','Explore how it works in step 3.');return;}
+  if(s.n===1){toast('Hint','Go back to step 1, Fix the use case. Ask: what would we never let this agent do alone?');return;}
+  if(s.need){const id=s.need.find(i=>!B.nodes[i]); const el=$(`.pi[data-id="${id}"]`); if(el){el.scrollIntoView({block:'nearest'});el.animate&&el.animate([{boxShadow:'0 0 0 3px var(--mint)'},{boxShadow:'0 0 0 0 transparent'}],{duration:1200,iterations:2});}
+    toast('Hint',`Missing: ${NODES[id].l}. ${NODES[id].s}.`);return;}
+  const m=missingLinks()[0]; if(!m) return;
+  [m[0],m[1]].forEach(id=>{const el=bStage.querySelector(`.node[data-id="${id}"]`); if(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');}});
+  toast('Hint',`Connect ${DEF(m[0]).l} and ${DEF(m[1]).l}.`);
+};
+
+/* =========================================================
+   BLOCK 2: TEST
+   ========================================================= */
+const rStage=$('#rStage');
+const R={edges:{},nodes:{}};
+function buildRunStage(){
+  rStage.innerHTML='';
+  const svg=document.createElementNS(SVGNS,'svg'); svg.setAttribute('class','edges'); svg.setAttribute('viewBox','0 0 1000 650'); rStage.appendChild(svg);
+  REF_EDGES.forEach(([a,b])=>{
+    const p=document.createElementNS(SVGNS,'path'); p.setAttribute('d',pathD(NODES[a],NODES[b])); p.setAttribute('class','edge'); svg.appendChild(p);
+    R.edges[ekey(a,b)]={a,b,p};
+  });
+  R.svg=svg;
+  Object.keys(NODES).forEach(id=>{const el=nodeEl(id,NODES[id],NODES[id],false); rStage.appendChild(el); R.nodes[id]=el;});
+}
+buildRunStage();
+const fitR=fitter($('#rWrap'),$('#rSizer'),rStage,.55);
+
+/* run state */
+let MODE='cur',PERSONA='patient',SPEED=0.4,paused=false,abort=false,running=false,last=null;
+const ACTS=[]; const act=fn=>{ACTS.push(fn);return ACTS.length-1;};
+
+function wait(ms){
+  return new Promise(res=>{
+    let left=ms,lt=performance.now();
+    (function tick(now){
+      if(abort) return res();
+      if(!paused) left-=(now-lt)*SPEED; lt=now;
+      if(left<=0) return res();
+      requestAnimationFrame(tick);
+    })(lt);
+  });
+}
+function packet(a,b,label,warn){
+  const e=R.edges[ekey(a,b)]; if(!e) return Promise.resolve();
+  e.p.classList.add('live'); if(warn) e.p.classList.add('warnlive');
+  const L=e.p.getTotalLength(), fwd=e.a===a;
+  const dot=document.createElementNS(SVGNS,'circle'); dot.setAttribute('r','7'); dot.setAttribute('class','packet'+(warn?' warn':'')); R.svg.appendChild(dot);
+  let pill=null;
+  if(label){const m=e.p.getPointAtLength(L/2); pill=document.createElement('div'); pill.className='edge-pill'+(warn?' warn':''); pill.textContent=label; pill.style.left=m.x+'px'; pill.style.top=(m.y-16)+'px'; rStage.appendChild(pill);}
+  const ms=REDUCE?1:900;
+  return new Promise(res=>{
+    let el=0,lt=null;
+    function frame(ts){
+      if(abort){dot.remove();if(pill)pill.remove();e.p.classList.remove('live','warnlive');return res();}
+      if(lt===null) lt=ts;
+      if(!paused) el+=(ts-lt)*SPEED; lt=ts;
+      const k=Math.min(1,el/ms), ez=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      const pt=e.p.getPointAtLength((fwd?ez:1-ez)*L); dot.setAttribute('cx',pt.x); dot.setAttribute('cy',pt.y);
+      if(k<1) requestAnimationFrame(frame);
+      else {dot.remove(); e.p.classList.remove('live','warnlive'); e.p.classList.add('used'); R.pill&&R.pill.remove(); R.pill=pill; res();}
+    }
+    requestAnimationFrame(frame);
+  });
+}
+/* ---------- live workflow ---------- */
+let PLAN_DONE=new Set();
+const flowEl=$('#flow');
+const keepVisible=()=>{flowEl.scrollTop=flowEl.scrollHeight;};
+const QUERY={t_sched:'Searching the booking system',d_dir:'Opening the clinic directory',d_rules:'Looking up the referral rules',d_ehr:'Opening the patient record',t_inbox:'Opening the referral inbox',t_elig:'Asking the insurer',d_ins:'Reading the insurance rules',t_msg:'Sending the message'};
+function stepParts(st){const p=st.e.replace('@','').split('>');return st.e.includes('>')?[p[0],p[1]]:[null,p[0]];}
+function voice(st){
+  if(st.a) return st.a;
+  const [f,t]=stepParts(st);
+  if(f==='user') return 'Reading the message';
+  if(!f) return st.st==='warn'?st.t:'Working out what is needed';
+  if(t==='mem') return 'Checking what I already know';
+  if(t==='plan') return 'Making a plan';
+  if(t==='user') return 'Sending the answer';
+  if(f==='orch'&&NODES[t].k==='agent') return `Handing over to the ${NODES[t].l.toLowerCase()}`;
+  if(QUERY[t]) return QUERY[t];
+  if(t==='guard') return 'Double-checking against the rules';
+  if(t==='h_coord') return st.approve?'Asking the access coordinator to approve':'Alerting the access coordinator';
+  if(t==='h_nurse') return 'Alerting a triage nurse';
+  if(f==='guard'&&t==='orch') return /Approved to send|Cleared/.test(st.t)?'All checks passed':st.t;
+  return st.t;
+}
+const runName=id=>id==='user'&&IF?IFACE[IF].node[0]:NODES[id].l;
+function whoLine(st){const [f,t]=stepParts(st); return f?`${runName(f)} → ${runName(t)}`:runName(t);}
+function actorId(st){const [f,t]=stepParts(st); return (t==='orch'&&f&&f!=='user')?f:t;}
+function addFlowItem(st,i){
+  $('#flowEmpty').hidden=true;
+  const n=NODES[actorId(st)];
+  const li=document.createElement('li'); li.className='fi live open'; li.dataset.kind=n.k; li.dataset.i=i;
+  li.innerHTML=`<button class="fh" aria-expanded="true"><span class="ic">${ICON[n.ic||n.k]}</span><span><b>${esc(voice(st))}</b><small>${esc(whoLine(st))}</small></span><span class="st" aria-hidden="true"></span></button><div class="lvbox"></div>`;
+  flowEl.appendChild(li); keepVisible(); return li;
+}
+function closeItem(li){
+  if(!li) return;
+  li.classList.remove('live'); li.classList.add(li._w?'w':'ok');
+  if(!li._w){li.classList.remove('open'); li.querySelector('.fh').setAttribute('aria-expanded','false');}
+}
+flowEl.addEventListener('click',e=>{
+  const h=e.target.closest('.fh'); if(!h) return; const li=h.parentElement; if(li.classList.contains('live')) return;
+  li.classList.toggle('open'); h.setAttribute('aria-expanded',li.classList.contains('open'));
+});
+async function renderLive(st,box){
+  const anim=!REDUCE;
+  const W=ms=>anim?wait(ms):Promise.resolve();
+  const add=(html,cls)=>{const d=document.createElement('div');d.className='lv'+(cls?' '+cls:'');d.innerHTML=html;box.appendChild(d);requestAnimationFrame(()=>d.classList.add('in'));keepVisible();return d;};
+  const type=async(el,text)=>{
+    if(!anim){el.textContent=text;return;}
+    el.classList.add('typing');
+    for(let i=0;i<text.length&&!abort;i+=2){el.textContent=text.slice(0,i+2);keepVisible();await wait(26);}
+    el.textContent=text; el.classList.remove('typing');
+  };
+  const notes=[];
+  const val=v=>{if(v&&typeof v==='object'){if(v.f){notes.push(v.f);return `<span class="flag">${esc(v.v)}</span>`;}if(v.ok)return `<span class="okv">${esc(v.v)}</span>`;}return esc(v);};
+  const plain=v=>v&&typeof v==='object'?v.v:v;
+  const [f,t]=stepParts(st), kt=NODES[t].k;
+  const entries=st.d&&typeof st.d==='object'&&!Array.isArray(st.d)?Object.entries(st.d):[];
+  if(f==='user'){
+    add(`<div class="quote" dir="auto">${esc(st.d.Message)}</div>`); await W(500);
+    for(const [k,v] of entries) if(k!=='Message'){add(`<span class="k">${esc(k)}:</span> ${val(v)}`,'field'); await W(350);}
+  } else if(!f){
+    add('Thinking','think-h');
+    for(const [k,v] of entries){const d=add('','thought'); await type(d,`${k}: ${plain(v)}`); if(v&&v.f){d.classList.add('w');notes.push(v.f);} await W(180);}
+  } else if(st.k==='plan'){
+    const ol=add('<ol class="plan"></ol>').querySelector('ol');
+    for(let j=0;j<st.d.length;j++){const li=document.createElement('li');li.dataset.i=j;if(PLAN_DONE.has(j))li.className='d';li.innerHTML=`<i>${PLAN_DONE.has(j)?'✓':''}</i>${esc(st.d[j])}`;ol.appendChild(li);keepVisible();await W(420);}
+  } else if(st.k==='msg'){
+    const d=add(`<div class="sms" ${st.d.rtl?'dir="rtl"':''}><small>${esc(st.d.to)}</small><span></span></div>`); await type(d.querySelector('span'),st.d.text);
+  } else if(st.k==='rows'){
+    const q=add(`<span class="spin"></span>${esc(QUERY[t]||'Looking it up')}…`,'query'); await W(850);
+    q.innerHTML=`<span class="ok-i">✓</span>${st.d.rows.length} ${st.d.rows.length===1?'entry':'entries'} found in the ${esc(NODES[t].l.toLowerCase())}`;
+    const tb=add(`<div class="tbl-wrap"><table class="scan"><thead><tr>${st.d.cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody></tbody></table></div>`).querySelector('tbody');
+    for(const r of st.d.rows){
+      const tr=document.createElement('tr'); tr.className='scanning'; tr.innerHTML=r.map(c=>`<td>${val(c)}</td>`).join(''); tb.appendChild(tr); keepVisible();
+      await W(500); tr.classList.remove('scanning');
+      if(r.some(c=>c&&c.f)) tr.classList.add('w'); else if(r.some(c=>c&&c.ok)) tr.classList.add('g');
+    }
+    if(st.d.title) add(esc(st.d.title),'src');
+  } else if(kt==='tool'||kt==='data'){
+    const q=add(`<span class="spin"></span>${esc(QUERY[t]||'Looking it up')}…`,'query'); await W(800);
+    q.innerHTML=`<span class="ok-i">✓</span>${esc(NODES[t].l)}`;
+    for(const [k,v] of entries){add(`<span class="k">${esc(k)}:</span> ${val(v)}`,'field'); await W(380);}
+  } else if(t==='guard'){
+    for(const [k,v] of entries){const w=v&&v.f; add(`<span class="${w?'ni':'ok-i'}">${w?'!':'✓'}</span><span class="k">${esc(k)}:</span> ${val(v)}`,'check'); await W(480);}
+  } else if(kt==='agent'&&f==='orch'){
+    add(`<div class="brief"><small>Brief for the ${esc(NODES[t].l.toLowerCase())}</small>${entries.map(([k,v])=>`<div><span class="k">${esc(k)}:</span> ${val(v)}</div>`).join('')}</div>`); await W(950);
+  } else if(t==='user'){
+    add('<span class="ok-i">✓</span>The answer is now in the chat','line'); await W(300);
+  } else {
+    for(const [k,v] of entries){add(`<span class="k">${esc(k)}:</span> ${val(v)}`,'field'); await W(380);}
+  }
+  for(const n of [...new Set(notes.concat(st.note?[st.note]:[]))]){add(`<span class="ni">!</span><span>${esc(n)}</span>`,'note'); await W(800);}
+}
+function tickPlan(j){PLAN_DONE.add(j); flowEl.querySelectorAll(`.plan li[data-i="${j}"]`).forEach(li=>{li.className='d';li.querySelector('i').textContent='✓';});}
+
+/* chat */
+const msgs=$('#msgs');
+const scrollChat=()=>{msgs.scrollTop=msgs.scrollHeight;};
+const tmNow=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+const inTeams=()=>PERSONA==='staff';
+function addUser(text,who){
+  const d=document.createElement('div'); d.className='msg u pop'+(inTeams()?' tm':'');
+  d.innerHTML=`<div class="mh">${inTeams()?tmNow():who==='staff'?'Access coordinator':'Patient'}</div><div dir="auto">${esc(text)}</div>`;
+  msgs.appendChild(d); scrollChat(); return d;
+}
+
+/* chat folds into a rail while the agent works, so the map gets the room; messages fly between chat and map */
+const runView=$('#run'), chatEl=$('#run .chat');
+const NARROW=window.matchMedia?matchMedia('(max-width:1180px)'):{matches:true};
+let chatOpen=true;
+function setChat(open){
+  if(NARROW.matches) open=true;
+  if(open===chatOpen) return Promise.resolve();
+  chatOpen=open; runView.classList.toggle('chat-min',!open);
+  [...chatEl.children].forEach(c=>{c.inert=c.id==='rail'?open:!open;});
+  $('#chatToggle').setAttribute('aria-expanded',open);
+  return new Promise(r=>setTimeout(()=>{if(open) scrollChat(); r();},REDUCE?0:620));
+}
+$('#chatToggle').onclick=()=>setChat(false);
+$('#chatOpen').onclick=()=>setChat(true);
+const canFly=()=>!REDUCE&&!NARROW.matches&&!runView.hidden;
+const centerOf=el=>()=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};};
+const fixedAt=el=>{const p=centerOf(el)();return ()=>p;};
+const chatSpot=()=>{const r=msgs.getBoundingClientRect();return {x:r.left+Math.min(r.width*.4,150),y:r.bottom-50};};
+const brief=s=>{const t=String(s).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return t.length>54?t.slice(0,52)+'…':t;};
+// from/to are evaluated every frame, so the message keeps tracking a node while the map is still resizing
+function fly(from,to,label,cls,grow,landId){
+  if(!canFly()) return Promise.resolve();
+  const el=document.createElement('div'); el.className='fly'+(cls?' '+cls:''); el.textContent=label; el.setAttribute('dir','auto'); document.body.appendChild(el);
+  const ms=1150;
+  return new Promise(res=>{
+    let t=0,lt=null;
+    function fr(ts){
+      if(lt===null) lt=ts; if(!paused) t+=(ts-lt)*Math.min(SPEED,1.6); lt=ts;
+      const k=Math.min(1,t/ms), e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+      const a=from(),b=to(), cx=(a.x+b.x)/2, cy=Math.min(a.y,b.y)-Math.min(120,Math.abs(b.x-a.x)*.25);
+      const x=(1-e)*(1-e)*a.x+2*(1-e)*e*cx+e*e*b.x, y=(1-e)*(1-e)*a.y+2*(1-e)*e*cy+e*e*b.y;
+      const s=grow?.25+.75*e:1-.75*e;
+      el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%) scale(${s})`;
+      el.style.opacity=grow?Math.min(1,k*5):Math.min(1,(1-k)*5);
+      if(k<1&&!abort) requestAnimationFrame(fr);
+      else {el.remove(); const n=landId&&R.nodes[landId]; if(n){n.classList.remove('land');void n.offsetWidth;n.classList.add('land');} res();}
+    }
+    requestAnimationFrame(fr);
+  });
+}
+function addAgent(html,opts){
+  opts=opts||{};
+  const d=document.createElement('div'); d.className='msg a pop'+(inTeams()?' tm':'');
+  const chip=opts.mode?`<span class="chip ${opts.mode}">${opts.mode==='raw'?'Raw data':'Curated data'}</span>`:'';
+  d.innerHTML=`<div class="mh">${inTeams()?`<span class="nm">Patient access agent</span><span class="app">App</span><span>${tmNow()}</span>`:'<span>Agent</span>'}${chip}</div><div ${opts.rtl?'dir="rtl"':''}>${html}</div>`+
+    (opts.chips&&opts.chips.length?`<div class="chips">${opts.chips.map(c=>`<button class="btn sm" data-act="${act(c.fn)}">${esc(c.l)}</button>`).join('')}</div>`:'');
+  msgs.appendChild(d); scrollChat(); return d;
+}
+function addHtml(cls,html){const d=document.createElement('div'); d.className=cls+(inTeams()&&/^msg /.test(cls)?' tm':''); d.innerHTML=html; msgs.appendChild(d); scrollChat(); return d;}
+msgs.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b||running) return;
+  const fn=ACTS[+b.dataset.act]; if(fn) fn();
+});
+const tpop=$('#teamsPop');
+const TM_ICONS={Activity:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  Chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  Teams:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  Calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'};
+document.querySelectorAll('.tm-rail,.tp-rail').forEach(r=>{r.innerHTML=Object.keys(TM_ICONS).map(k=>
+  `<span class="tm-ri${k==='Chat'?' on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${TM_ICONS[k]}</svg>${k}${k==='Activity'&&r.classList.contains('tp-rail')?'<i class="bd">1</i>':''}</span>`).join('');});
+function showTeams(on){
+  // stacked layout: the map sits below the chat, so bring the Teams message into view and back
+  const sv=el=>{if(NARROW.matches&&!runView.hidden&&el.scrollIntoView) el.scrollIntoView({block:'center',behavior:REDUCE?'auto':'smooth'});};
+  if(on){tpop.hidden=false; void tpop.offsetWidth; tpop.classList.add('show'); sv(tpop); return;}
+  if(!tpop.hidden) sv(chatEl);
+  tpop.classList.remove('show'); setTimeout(()=>{if(!tpop.classList.contains('show')) tpop.hidden=true;},REDUCE?0:400);
+}
+function approval(ap){
+  return new Promise(res=>{
+    $('#tpQ').textContent=ap.q; $('#tpYes').textContent=ap.yes||'Approve'; $('#tpTime').textContent=tmNow();
+    const st=$('#tpStatus'); st.textContent=''; st.className='tp-status'; $('#tpCard').classList.remove('decided');
+    $('#tpYes').disabled=$('#tpNo').disabled=false;
+    showTeams(true); $('#tpYes').focus({preventScroll:true});
+    let settled=false;
+    const done=v=>{
+      if(settled) return; settled=true;
+      $('#tpYes').disabled=$('#tpNo').disabled=true;
+      st.textContent=v?'✓ You approved this. The agent continues.':'You rejected this. The agent stops and nothing is booked.'; st.className='tp-status '+(v?'ok':'no');
+      $('#tpCard').classList.add('decided');
+      res(v);
+    };
+    $('#tpYes').onclick=()=>done(true);
+    $('#tpNo').onclick=()=>done(false);
+    const chk=()=>{if(settled) return; if(abort) done(false); else setTimeout(chk,200);}; chk();
+  });
+}
+
+/* ---------- the engine ---------- */
+function resetRun(sc){
+  showTeams(false);
+  abort=false; paused=false; PLAN_DONE=new Set();
+  flowEl.innerHTML=''; $('#flowEmpty').hidden=true; $('#flowStatus').textContent=`Working with ${MODE==='raw'?'raw data':'curated data'}`;
+  Object.values(R.edges).forEach(e=>e.p.setAttribute('class','edge'));
+  if(R.pill){R.pill.remove();R.pill=null;}
+  const inv=new Set();
+  sc.steps.forEach(s=>{(s.e||'').replace('@','').split('>').forEach(x=>x&&inv.add(x));});
+  Object.entries(R.nodes).forEach(([id,el])=>{el.className='node'+(inv.has(id)?'':' dim');});
+}
+function setNode(id,cls){const el=R.nodes[id]; if(!el) return; el.classList.remove('active','think','warn','wait'); if(cls) el.classList.add(...cls.split(' '));}
+async function play(id,p){
+  const sc=SC[id](p||{},MODE);
+  last={id,p:p||{}};
+  running=true; lockUI(true); resetRun(sc);
+  if(sc.who) setPersona(sc.who);
+  const ub=addUser(p.text,sc.who);
+  if(canFly()){
+    await new Promise(r=>setTimeout(r,250));
+    const from=chatOpen?fixedAt(ub):fixedAt($('#rail .avatar'));
+    setChat(false);
+    await fly(from,centerOf(R.nodes.user),brief(p.text),'',false,'user');
+  }
+  let approved=true, activeIds=[], prev=null, done=0;
+  for(let i=0;i<sc.steps.length;i++){
+    if(abort) break;
+    const st=sc.steps[i]; const [from,to]=stepParts(st);
+    closeItem(prev);
+    const item=addFlowItem(st,i); prev=item; item._w=st.st==='warn';
+    activeIds.forEach(x=>{setNode(x,null);R.nodes[x].classList.add('done');});
+    if(from){setNode(from,'active'); await packet(from,to,st.lbl,st.st==='warn'); setNode(from,null); R.nodes[from].classList.add('done');}
+    setNode(to,st.st==='warn'?'warn':st.st==='wait'?'wait':(from?'active':'active think'));
+    activeIds=[to];
+    await renderLive(st,item.querySelector('.lvbox'));
+    if(typeof st.pl==='number') tickPlan(st.pl);
+    done++;
+    if(st.approve){
+      item.classList.add('wt');
+      const wl=document.createElement('div'); wl.className='lv in waitline'; wl.innerHTML='<span class="spin"></span>Waiting for the access coordinator to decide in Teams';
+      item.querySelector('.lvbox').appendChild(wl); keepVisible();
+      // the agent messages the coordinator in Teams and waits; the chat with the requester stays as it is
+      $('#railTxt').textContent='Waiting for approval in Teams';
+      if(canFly()) await fly(centerOf(R.nodes[to]),centerOf(tpop),'Teams: '+brief(st.approve.q),'ask',true);
+      const ap=approval(st.approve); approved=await ap;
+      item.classList.remove('wt');
+      wl.innerHTML=approved?'<span class="ok-i">✓</span>Approved in Teams by the access coordinator':'<span class="ni">!</span>Rejected in Teams by the access coordinator';
+      await wait(900); showTeams(false);
+      if(canFly()&&!abort) await fly(centerOf(tpop),centerOf(R.nodes[to]),approved?'Approved':'Rejected',approved?'':'ask',false,to);
+      if(running) $('#railTxt').textContent='The agent is working on it';
+      setNode(to,'active');
+      if(!approved) break;
+    }
+    await wait(650);
+  }
+  closeItem(prev);
+  activeIds.forEach(x=>{setNode(x,null);R.nodes[x].classList.add('done');});
+  if(!abort){
+    if(canFly()){
+      const html=approved?sc.reply:(sc.rejected||'Stopped. Nothing was booked or sent.');
+      await Promise.all([setChat(true),fly(centerOf(R.nodes.user),chatSpot,brief(html),'reply',true)]);
+    } else {
+      const typing=addHtml('msg a',`<div class="typing"><span></span><span></span><span></span></div>`);
+      await wait(650); typing.remove();
+    }
+    if(!approved){
+      addAgent(sc.rejected||'<p>Stopped. Nothing was booked or sent. The access coordinator will follow up.</p>',{mode:sc.dd?MODE:null});
+      $('#flowStatus').textContent='Stopped by a person';
+    } else {
+      addAgent(sc.reply,{mode:sc.dd?MODE:null,chips:sc.chips,rtl:sc.rtl});
+      if(sc.lesson){
+        const L=sc.lesson; const other=MODE==='raw'?'cur':'raw';
+        const replayBtn=sc.dd?`<button class="btn sm ${MODE==='raw'?'primary':''}" data-act="${act(()=>replay(other))}">Ask the same again with ${other==='raw'?'raw':'curated'} data</button>`:'';
+        addHtml('lesson '+L.type,`<b>${esc(L.title)}</b>${L.text?`<div>${esc(L.text)}</div>`:''}${L.items?`<ul>${L.items.filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${replayBtn}`);
+      }
+      const warns=flowEl.querySelectorAll('.fi.w').length;
+      $('#flowStatus').textContent=`Done in ${done} steps`+(warns?`, ${warns} to check`:'')+`, ${MODE==='raw'?'raw data':'curated data'}`;
+    }
+  } else {
+    await setChat(true); addAgent('<p>Stopped.</p>'); $('#flowStatus').textContent='Stopped';
+  }
+  running=false; lockUI(false);
+}
+function replay(mode){
+  if(running||!last) return;
+  setMode(mode);
+  addHtml('divider',`Same request with ${mode==='raw'?'raw data':'curated data'}`);
+  play(last.id,last.p);
+}
+function lockUI(on){
+  $('#send').textContent=on?'Stop':'Send';
+  $('#q').disabled=on; $('#btnPause').disabled=!on; $('#btnPause').textContent='Pause';
+  $('#railStop').hidden=!on; $('#railDots').hidden=!on; $('#railTxt').textContent=on?'The agent is working on it':'Chat with the agent';
+  document.querySelectorAll('#dataSeg button,#suggest button,#persona button').forEach(b=>b.disabled=on);
+}
+$('#composer').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(running){abort=true;paused=false;return;}
+  const t=$('#q').value.trim(); if(!t) return; $('#q').value='';
+  const r=route(t); play(r.id,Object.assign({text:t},r.p));
+});
+$('#railStop').onclick=()=>{if(running){abort=true;paused=false;}};
+$('#btnPause').onclick=()=>{paused=!paused;$('#btnPause').textContent=paused?'Resume':'Pause';};
+$('#speedSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;SPEED=+b.dataset.s;document.querySelectorAll('#speedSeg button').forEach(x=>x.classList.toggle('on',x===b));});
+function setMode(m){MODE=m;document.querySelectorAll('#dataSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));}
+let dataSeen=false;
+$('#dataSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||running)return;setMode(b.dataset.mode);
+  if(!dataSeen){dataSeen=true;$('#dataCard').hidden=false;}
+  if(!running) $('#flowStatus').textContent=MODE==='raw'?'Next request uses raw data':'Next request uses curated data';
+});
+const m2l=m=>m==='raw'?'Raw data':'Curated data';
+$('#btnData').onclick=()=>{$('#dataCard').hidden=!$('#dataCard').hidden;};
+$('#dataX').onclick=()=>{$('#dataCard').hidden=true;};
+/* patients use the agent in the patient app; staff use it inside Teams, not as another app */
+const IFACE={
+  patient:{tag:'What patients see',name:'Patient access agent',sub:'In the patient app',node:['Patient app','Patients ask in the app']},
+  staff:{tag:'In Microsoft Teams',name:'Patient access agent',sub:'A chat in Teams, no extra app',node:['Teams chat','Staff ask in Teams']}
+};
+let IF=null, staffNote=false; const Q_PH=$('#q').placeholder;
+function setPersona(p,quiet){
+  if(p===IF) return; IF=p; PERSONA=p; const c=IFACE[p];
+  document.querySelectorAll('#persona button').forEach(x=>x.classList.toggle('on',x.dataset.p===p));
+  chatEl.classList.toggle('if-staff',p==='staff');
+  $('#whoTag').textContent=c.tag; $('#whoName').textContent=c.name;
+  $('#whoSub').innerHTML=p==='staff'?'<span class="tm-tabs"><span class="on">Chat</span><span>Files</span><span>About</span></span>':'<i></i>'+esc(c.sub);
+  $('#q').placeholder=p==='staff'?'Type a message':Q_PH;
+  const u=R.nodes.user; if(u){u.querySelector('b').textContent=c.node[0]; u.querySelector('small').textContent=c.node[1]; if(!quiet){u.classList.remove('land'); void u.offsetWidth; u.classList.add('land');}}
+  renderSuggest();
+  if(quiet) return;
+  addHtml('divider',p==='staff'?'Now as staff, in Teams':'Now as a patient, in the app');
+  if(p==='staff'&&!staffNote){staffNote=true; addHtml('lesson info','<b>For staff, the agent lives in Teams</b><div>No new app to learn. Staff chat with the agent like with a colleague, in the tool they use all day. When the agent needs a decision, it sends the person in charge a Teams message and waits.</div>');}
+}
+$('#persona').addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b&&!running)setPersona(b.dataset.p);});
+
+/* =========================================================
+   CONTENT: people, clinics, scenarios (all fictional)
+   ========================================================= */
+const PT={name:'Fatima Al Hammadi',mrn:'MRN 4417-208',phone:'+971 50 *** 2281'};
+const SPEC={
+  paed:{name:'Paediatrics',ar:'طب الأطفال',kw:/paed|pediatr|\bchild|daughter|\bson\b|\bbaby|\bkids?\b|أطفال/,docs:['Dr. Priya Nair','Dr. Hamad Al Shamsi','Dr. Sara Haddad'],codes:'PAED, Peds OPD',site:"Children's Clinic"},
+  derm:{name:'Dermatology',ar:'الأمراض الجلدية',kw:/derma|skin|rash|acne|eczema|psoria|\bmoles?\b|جلد/,docs:['Dr. Aisha Rahman','Dr. Omar Haddad','Dr. Karim Saleh'],codes:'DERM, Derma OPD',site:'Specialty Clinic'},
+  card:{name:'Cardiology',ar:'أمراض القلب',kw:/cardi|heart|palpitation|قلب/,docs:['Dr. Elena Petrova','Dr. Yousef Al Marzouqi','Dr. Rami Aziz'],codes:'CARD, Cardio OPD',site:'Specialty Clinic'},
+  ortho:{name:'Orthopaedics',ar:'جراحة العظام',kw:/ortho|knee|back pain|\bbones?\b|joint|shoulder|fracture|\bhip\b|عظام/,docs:['Dr. Layla Mansour','Dr. Hassan Qureshi','Dr. Tariq Bashir'],codes:'ORTH, Ortho OPD',site:'Specialty Clinic'},
+  ent:{name:'ENT',ar:'الأنف والأذن والحنجرة',kw:/\bent\b|\bears?\b|\bnose\b|throat|sinus|tonsil|hearing/,docs:['Dr. Noor Al Hashimi','Dr. Samir Khoury','Dr. James Morton'],codes:'ENT, E.N.T.',site:'Specialty Clinic'},
+  eye:{name:'Ophthalmology',ar:'طب العيون',kw:/ophthal|\beyes?\b|vision|eyesight|عيون/,docs:['Dr. Mariam Al Zaabi','Dr. Vikram Iyer','Dr. Ahmed Fathy'],codes:'OPHT, Eye OPD',site:'Eye Clinic'},
+  dent:{name:'Dental',ar:'طب الأسنان',kw:/dent|tooth|teeth|أسنان|اسنان/,docs:['Dr. Hind Al Mazrouei','Dr. Faisal Rahim','Dr. Lina Saber'],codes:'DENT, Dental OPD',site:'Dental Centre'},
+  gyn:{name:'Obstetrics and gynaecology',ar:'النساء والولادة',kw:/gyn|obstet|pregnan|antenatal|prenatal/,docs:['Dr. Reem Al Ali','Dr. Nadia Fares','Dr. Salma Yousef'],codes:'OBGYN, Gynae OPD',site:"Women's Clinic"},
+  endo:{name:'Diabetes and endocrinology',ar:'السكري والغدد',kw:/diabet|endocrin|thyroid|blood sugar|hba1c|سكري/,docs:['Dr. Fatma Al Suwaidi','Dr. George Mathew','Dr. Imran Sheikh'],codes:'ENDO, Diabetes OPD',site:'Diabetes Centre'},
+  physio:{name:'Physiotherapy',ar:'العلاج الطبيعي',kw:/physio/,docs:['Huda Al Nuaimi, physiotherapist','Daniel Ross, physiotherapist','Rania Aoun, physiotherapist'],codes:'PHYS, Physio OPD',site:'Rehab Centre'},
+  fam:{name:'Family medicine',ar:'طب الأسرة',kw:/\bgp\b|family (doctor|medicine)|general (practi|doctor)|check-?up/,docs:['Dr. Amna Al Kaabi','Dr. Joseph Varghese','Dr. Bilal Akhtar'],codes:'FM, Family Med',site:'Health Centre'}
+};
+const TIMES={
+  any:{label:'Any time',t:['09:10','14:50','17:40'],sess:'Mornings and evenings'},
+  morning:{label:'Morning',t:['08:40','09:10','10:30'],sess:'Mornings'},
+  afternoon:{label:'Afternoon',t:['13:20','14:50','15:30'],sess:'Afternoons'},
+  evening:{label:'Evening, after work',t:['17:40','18:20','19:00'],sess:'Evenings'}
+};
+const LOCS=[['Sharjah',/sharjah|الشارقة/],['Ajman',/ajman|عجمان/],['Umm Al Quwain',/umm al quwain|\buaq\b/],['Ras Al Khaimah',/ras al khaimah|\brak\b/],['Fujairah',/fujairah|الفجيرة/],['Kalba',/kalba/],['Khor Fakkan',/khor ?fakkan/],['Dibba',/dibba/],['Dubai',/dubai|دبي/]];
+const findSpec=t=>Object.keys(SPEC).find(k=>SPEC[k].kw.test(t));
+const findTime=t=>/evening|after work|night|after 5|late|مساء/.test(t)?'evening':/morning|early|صباح/.test(t)?'morning':/afternoon|lunch/.test(t)?'afternoon':'any';
+const findLoc=t=>{const l=LOCS.find(x=>x[1].test(t));return l?l[0]:null;};
+function days(t){
+  if(/tomorrow|asap|as soon as|this week|soonest/.test(t)) return {label:'Next available',d:['Thu 29 Oct','Fri 30 Oct','Mon 2 Nov']};
+  if(/weekend|saturday|sunday/.test(t)) return {label:'Weekends',d:['Sat 31 Oct','Sat 7 Nov','Sat 7 Nov']};
+  return {label:'Next week, 2 to 6 November',d:['Mon 2 Nov','Tue 3 Nov','Thu 5 Nov']};
+}
+const siteOf=(sp,loc)=>`${loc} ${sp.site}`;
+function slotsGood(sp,tp,loc,ds){const T=TIMES[tp].t,s=siteOf(sp,loc);return [{day:ds.d[0],time:T[0],doc:sp.docs[0],site:s},{day:ds.d[1],time:T[1],doc:sp.docs[2],site:s},{day:ds.d[2],time:T[2],doc:sp.docs[0],site:s}];}
+function slotsRaw(sp,loc,ds){const s=siteOf(sp,loc);return [{day:ds.d[0],time:'09:10',doc:sp.docs[1],site:s,bad:true},{day:ds.d[1],time:'10:30',doc:sp.docs[1],site:s,bad:true}];}
+function slotHtml(list,onPick,ar){
+  return `<div class="slots">${list.map(s=>`<div class="slot"><div class="when"><b>${esc(s.day)}</b><span>${esc(s.time)}</span></div><div class="who"><b>${esc(s.doc)}</b><small>${esc(s.site)}</small></div><button class="btn sm primary" data-act="${act(()=>onPick(s))}">${ar?'احجز':'Book'}</button></div>`).join('')}</div>`;
+}
+const S=(e,t,s,k,d,x)=>Object.assign({e,t,s,k,d},x||{});
+const F=(v,f)=>({v,f}); const OK=v=>({v,ok:true});
+const ANSWER=S('orch>user','Answer sent','The orchestrator sends the checked answer back to the person who asked.','text','The answer appears in the chat.');
+
+const SC={};
+
+/* ---- book a new appointment ---- */
+SC.book=(p,m)=>{
+  const sp=SPEC[p.spec||'derm'],tp=p.time||'any',loc=p.loc||'Ajman',ds=days((p.text||'').toLowerCase()),site=siteOf(sp,loc),raw=m==='raw';
+  const good=slotsGood(sp,tp,loc,ds),bad=slotsRaw(sp,loc,ds);
+  const wantsLate=tp==='evening'||tp==='afternoon';
+  const steps=[
+    S('user>orch','Request received','The message reaches the orchestrator. The patient is logged in to the app, so the agent knows who is asking.','kv',{Message:p.text,Channel:'Patient app, logged in',Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','The orchestrator turns the free text into a structured request it can act on.','kv',{Task:'Book a new appointment',Specialty:sp.name,'Preferred time':TIMES[tp].label,When:ds.label,Area:p.loc?loc:'Ajman (home address in record)',Urgency:'Routine. No warning signs in the message'}),
+    S('orch>mem','Memory checked','It looks up what it already knows about this patient from earlier conversations.','kv',{'Earlier requests':'Family medicine visit booked in August','Preferences':'SMS reminders in English, clinics close to home'},{lbl:'What do we know?'}),
+    S('orch>plan','Plan made','The planner splits the job into steps and decides which specialist handles each one.','plan',['Check whether a referral is needed','Find slots that match the request','Check insurance coverage','Review, then offer the best options'],{lbl:'Make a plan'}),
+    S('orch>ref','Referral question','The orchestrator asks the referral agent whether this visit needs a referral.','kv',{Question:`Does a first ${sp.name.toLowerCase()} visit need a referral?`},{lbl:'Referral needed?'}),
+    S('ref>d_rules','Rules looked up','The referral agent looks the answer up in the referral rules instead of guessing.','rows',{cols:['Visit type','Self-booking','Rule'],rows:[[`${sp.name}, routine first visit`,'Allowed','No referral needed on the Basic plan'],[`${sp.name}, urgent`,'Not allowed','Needs a doctor’s referral']]},{lbl:'Look up rule'}),
+    S('ref>orch','No referral needed','The patient can book directly.','kv',{Answer:OK('No referral needed')},{pl:0,lbl:'Not needed'}),
+    S('orch>sch','Slot search requested','The scheduling agent gets clear search criteria.','kv',{Specialty:sp.name,When:ds.label,Time:TIMES[tp].label,Area:loc},{lbl:'Find slots'})
+  ];
+  if(!raw){
+    steps.push(
+      S('sch>d_dir','Directory checked','It checks which doctors work at the clinic and when they hold sessions.','rows',{cols:['Doctor','Clinic','Status','Sessions'],rows:[[sp.docs[0],site,OK('Active'),TIMES[tp].sess],[sp.docs[2],site,OK('Active'),TIMES[tp].sess]],title:'Directory owner: Ajman cluster operations. Synced with staff rosters this morning.'},{lbl:'Who works there?'}),
+      S('sch>t_sched','Booking system searched','It asks the booking system for free slots that match. One system holds all sessions, updated live.','rows',{cols:['Date','Time','Doctor','Status'],rows:[[good[0].day,good[0].time,good[0].doc,'Free'],[good[1].day,good[1].time,good[1].doc,'Free'],[good[2].day,good[2].time,good[2].doc,'Free'],[ds.d[2],'08:20',sp.docs[2],'Free']]},{lbl:`${sp.codes.split(',')[0]} slots, ${TIMES[tp].label.toLowerCase()}`}),
+      S('sch>orch','Best three chosen','It ranks the slots by the patient’s preferences and returns the best three.','kv',{Ranked:'Matches time preference, then earliest date, then distance from home',Returned:'3 options'},{pl:1,lbl:'3 best options',a:'Selecting the best three options'})
+    );
+  } else {
+    steps.push(
+      S('sch>d_dir','Directory checked','It checks which doctors work at the clinic. This directory is updated by hand and nobody owns it.','rows',{cols:['Doctor','Clinic','Status','Sessions'],rows:[[sp.docs[1],site,F('Active','Left the clinic in June 2026. The directory has no owner, so nobody updated it.'),'Mornings'],[sp.docs[0],site,'Active',F('Unknown','Session times are missing for this doctor.')]],title:'Last edited: January 2025'},{lbl:'Who works there?',st:'warn'}),
+      S('sch>t_sched','Booking system searched',`It searches the booking system using the code ${sp.codes.split(',')[0]}. Some sessions are filed under a different code in a second system.`,'rows',{cols:['Date','Time','Doctor','Status'],rows:[[bad[0].day,bad[0].time,F(bad[0].doc,'This doctor left in June. The slots are old template entries.'),'Free'],[bad[1].day,bad[1].time,F(bad[1].doc,'This doctor left in June. The slots are old template entries.'),'Free']],title:wantsLate?`Searched code ${sp.codes.split(',')[0]} only.`:'Searched one of two booking systems.'},{lbl:`Search code ${sp.codes.split(',')[0]}`,st:'warn',note:wantsLate?`Later sessions exist but are filed as "${sp.codes.split(', ')[1]}" in a second system that is copied overnight. The agent never saw them.`:`A second booking system with more sessions is only copied overnight. The agent never saw it.`}),
+      S('sch>orch','Options returned','It returns what it found. From the data it has, these look like valid slots.','kv',{Returned:'2 options',Confidence:'High, based on the data available'},{pl:1,lbl:'2 options',a:'Picking the options to offer'})
+    );
+  }
+  steps.push(
+    S('orch>cov','Coverage question','The coverage agent checks whether the visit is covered.','kv',{Question:`Is a ${sp.name.toLowerCase()} consultation covered on the Basic plan?`},{lbl:'Covered?'}),
+    S('cov>t_elig','Insurer checked','It asks the insurer’s eligibility service.','kv',{Plan:'Basic plan',Status:OK('Active until 31 Mar 2027'),Consultation:'Covered','Co-payment':'AED 20'},{lbl:'Eligibility'}),
+    S('cov>orch','Coverage confirmed','Covered, with a small co-payment.','kv',{Answer:OK('Covered, AED 20 co-payment')},{pl:2,lbl:'Covered'}),
+    S('orch>guard','Answer reviewed','Before replying, the reviewer checks the draft answer against the rules.','kv',{'Medical advice given':'No','Personal data shared':'Only with the verified patient','Action risk':'Low. Nothing is booked until the patient chooses'},{lbl:'Check draft'}),
+    S('guard>orch','Approved to send','The draft passes all checks.','kv',{Result:OK('OK to send')},{pl:3,lbl:'OK'}),
+    ANSWER
+  );
+  const pick=s=>play('confirm',{text:`Book ${s.day}, ${s.time} with ${s.doc}`,slot:s,kind:'book',spec:p.spec});
+  let reply,lesson;
+  if(!raw){
+    reply=`<p>I found three ${sp.name.toLowerCase()} appointments ${ds.label.toLowerCase().startsWith('next week')?'next week':'for you'}${p.loc?' in '+esc(loc):' near your home in Ajman'}${tp!=='any'?', all in the '+(tp==='evening'?'evening':tp):''}:</p>${slotHtml(good,pick)}<p>No referral is needed, and your Basic plan covers the visit with an AED 20 co-payment.</p>`;
+    lesson={type:'good',title:'Why this worked',text:'The directory has an owner and is synced with staff rosters, and all slots come from one live booking system. Switch to raw data and ask the same question to see the difference.'};
+  } else {
+    reply=`<p>${wantsLate?`There are no ${tp} appointments available. `:''}The earliest ${sp.name.toLowerCase()} appointments are:</p>${slotHtml(bad,pick)}<p>No referral is needed, and your Basic plan covers the visit with an AED 20 co-payment.</p>`;
+    lesson={type:'bad',title:'What went wrong',items:[`${sp.docs[1]} left the clinic in June 2026. The directory still lists this doctor as active, so these appointments do not really exist.`,wantsLate?`${TIMES[tp].label} sessions do exist, filed under "${sp.codes.split(', ')[1]}" in a second system. The agent never searched it.`:'A second booking system with more sessions is only copied overnight, so the agent missed real options.'],text:'The model reasoned well. It reasoned over data that was wrong, and it sounded just as confident.'};
+  }
+  return {who:'patient',dd:true,steps,reply,lesson,capDone:raw?'A confident answer built on wrong data':'Three matching options offered'};
+};
+
+/* ---- confirm a booking or move ---- */
+SC.confirm=(p,m)=>{
+  const s=p.slot,ar=!!p.ar,move=p.kind==='move';
+  const ref='AJ-'+(58213+(s.time.charCodeAt(1)*7)%900);
+  const steps=[
+    S('user>orch',move?'Choice received':'Choice received','The patient picked an option.','kv',{Choice:`${s.day}, ${s.time}, ${s.doc}`},{lbl:'Patient’s choice'}),
+    S('orch>sch',move?'Move requested':'Booking requested','The orchestrator asks the scheduling agent to book it.','kv',{Action:move?'Book new slot, then cancel the old one':'Book slot',Slot:`${s.day}, ${s.time}`,Doctor:s.doc,Clinic:s.site},{lbl:move?'Move appointment':'Book it'}),
+    S('sch>t_sched',move?'Appointment moved':'Slot booked','The booking system confirms the booking.','kv',Object.assign({Result:OK('Booked'),Reference:ref},move?{'Old appointment':`${p.old} cancelled`,'Freed slot':'Offered to the next patient on the waiting list'}:{}),{lbl:'Book',a:move?'Moving the appointment':'Booking the slot'}),
+    S('sch>orch','Booking confirmed','Done. The result goes back to the orchestrator.','kv',{Booking:OK(ref)},{lbl:'Confirmed'}),
+    S('orch>com','Confirmation drafted','The communication agent writes the confirmation in the patient’s language.','kv',{Language:ar?'Arabic':'English',Channel:'SMS and app notification'},{lbl:'Tell the patient'}),
+    S('com>t_msg','Message sent','The confirmation and a reminder for the day before are sent.','msg',ar?{to:'SMS to '+PT.phone,rtl:true,text:`تم تأكيد موعدك: ${s.day} الساعة ${s.time} مع ${s.doc}، ${s.site}. رقم الحجز ${ref}. يرجى إحضار بطاقة الهوية.`}:{to:'SMS to '+PT.phone,text:`Your appointment is confirmed: ${s.day} at ${s.time} with ${s.doc}, ${s.site}. Ref ${ref}. Please bring your Emirates ID. Reply C to change.`},{lbl:'SMS'}),
+    S('orch>guard','Final check','The reviewer checks the action. Booking is low risk and easy to undo, so no person needs to approve it.','kv',{'Action risk':'Low, can be changed or cancelled any time','Approval needed':'No. Fast-lane action'},{lbl:'Check'}),
+    S('guard>orch','Cleared','All checks passed.','kv',{Result:OK('OK')}),
+    ANSWER
+  ];
+  const reply=ar?`<p>تم الحجز. موعدك يوم ${esc(s.day)} الساعة ${esc(s.time)} مع ${esc(s.doc)}. ستصلك رسالة تأكيد ورسالة تذكير قبل الموعد بيوم.</p><p dir="ltr" style="color:var(--mute);font-size:12px">Booked: ${esc(s.day)}, ${esc(s.time)} with ${esc(s.doc)}. Confirmation and reminder sent by SMS.</p>`:
+    `<div class="card"><dl><dt>${move?'Moved to':'Booked'}</dt><dd><b>${esc(s.day)}, ${esc(s.time)}</b></dd><dt>Doctor</dt><dd>${esc(s.doc)}</dd><dt>Clinic</dt><dd>${esc(s.site)}</dd><dt>Reference</dt><dd>${ref}</dd></dl></div><p>${move?`Your ${esc(p.old)} appointment is cancelled and the slot went to someone on the waiting list. `:''}You will get an SMS reminder the day before. Please bring your Emirates ID.</p>`;
+  const lesson=s.bad?{type:'bad',title:'This booking will fail on the day',text:`${s.doc} left the clinic in June. The booking system accepted the booking because it holds the same outdated data. The patient will arrive and find no doctor. None of the agent’s checks could catch this.`}:
+    {type:'info',title:'No person approved this, by design',text:'Booking and moving appointments is low risk and easy to undo, so the agent may complete it end to end. This is Level 3 on the maturity curve: the agent acts, staff handle the exceptions.'};
+  return {who:'patient',dd:false,steps,reply,lesson,rtl:false,capDone:move?'Appointment moved':'Appointment booked'};
+};
+
+/* ---- move an appointment ---- */
+SC.resched=(p,m)=>{
+  const sp=SPEC[p.spec||'ortho'],raw=m==='raw',loc='Ajman',site=siteOf(sp,loc);
+  const old=`Thu 29 Oct, 11:00`;
+  const opts=[{day:'Mon 2 Nov',time:'15:10',doc:sp.docs[0],site},{day:'Tue 3 Nov',time:'09:40',doc:sp.docs[0],site},{day:'Thu 5 Nov',time:'17:20',doc:sp.docs[2],site}];
+  const steps=[
+    S('user>orch','Request received','The message reaches the orchestrator. The patient is logged in.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','It works out what the patient wants changed.','kv',{Task:'Move an existing appointment',Specialty:sp.name,'Current day':'Thursday','New time':'Next week'}),
+    S('orch>plan','Plan made','The planner lays out the steps.','plan',['Find the current appointment','Find new slots next week','Offer options','Release the old slot to the waiting list'],{lbl:'Make a plan'}),
+    S('orch>sch','Appointment lookup','The scheduling agent looks for the appointment.','kv',{Find:`${sp.name} appointment this Thursday`,For:PT.name},{lbl:'Find appointment'})
+  ];
+  if(!raw){
+    steps.push(
+      S('sch>d_ehr','Patient matched','It matches the patient across systems using one patient ID.','rows',{cols:['Patient ID','Name','Date of birth','Source'],rows:[[PT.mrn,PT.name,'14 Mar 1989',OK('One record, matched across systems')]]},{lbl:'Which patient?'}),
+      S('sch>t_sched','Appointment found','It finds the Thursday appointment and searches next week.','rows',{cols:['Date','Time','Doctor','Status'],rows:[['Thu 29 Oct','11:00',sp.docs[0],'Booked (current)'],[opts[0].day,opts[0].time,opts[0].doc,'Free'],[opts[1].day,opts[1].time,opts[1].doc,'Free'],[opts[2].day,opts[2].time,opts[2].doc,'Free']]},{lbl:'Find + search',pl:0,a:'Finding the appointment and free slots'}),
+      S('sch>orch','Options returned','Three new options, keeping the same doctor where possible.','kv',{Returned:'3 options','Same doctor':'2 of 3'},{pl:1,lbl:'3 options',a:'Selecting three new options'}),
+      S('orch>guard','Answer reviewed','The reviewer checks the draft.','kv',{'Personal data':'Only the patient’s own appointment','Action risk':'Low. Nothing changes until the patient chooses'},{lbl:'Check draft'}),
+      S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')},{pl:2}),
+      ANSWER
+    );
+  } else {
+    steps.push(
+      S('sch>d_ehr','Patient matched','It looks the patient up. There are two records for the same person.','rows',{cols:['Patient ID','Name','Date of birth','Source'],rows:[[PT.mrn,PT.name,'14 Mar 1989','App account'],[F('MRN 4502-117','Duplicate record for the same person, created at a walk-in visit.'),'Fatima Alhammadi','14 Mar 1989','Walk-in registration']]},{lbl:'Which patient?',st:'warn'}),
+      S('sch>t_sched','Nothing found','It searches appointments for the app account. The Thursday appointment is booked under the duplicate record.','rows',{cols:['Date','Time','Doctor','Status'],rows:[[F('No appointment found','The appointment exists under MRN 4502-117, not the app account.'),'','','']],title:`Searched ${PT.mrn} only`},{lbl:'Find appointment',st:'warn'}),
+      S('sch>orch','Nothing to move','From the data it has, there is no appointment on Thursday.','kv',{Result:F('No match','A duplicate patient record hid the appointment.')},{lbl:'Not found',st:'warn'}),
+      S('orch>guard','Answer reviewed','The reviewer checks the draft. It is polite and safe, so it passes.','kv',{'Personal data':'Not shared','Action risk':'None'},{lbl:'Check draft'}),
+      S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+      ANSWER
+    );
+  }
+  const pick=s=>play('confirm',{text:`Move it to ${s.day}, ${s.time}`,slot:s,kind:'move',old});
+  const reply=raw?`<p>I can't find an ${esc(sp.name.toLowerCase())} appointment for you this Thursday. Could you check the date, or tell me the clinic name?</p>`:
+    `<p>Your ${esc(sp.name.toLowerCase())} appointment is on <b>${old}</b> with ${esc(sp.docs[0])}. Here are options next week:</p>${slotHtml(opts,pick)}<p>When you pick one, I'll cancel Thursday and give that slot to someone on the waiting list.</p>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',text:`The appointment exists, but it is booked under a duplicate record created at a walk-in visit. Without one patient ID across systems, the agent cannot see it. The patient is told something false and the Thursday slot is wasted.`}:
+    {type:'good',title:'Why this worked',text:'One patient ID links the app account, the patient record and the booking system. Try the same request with raw data.'};
+  return {who:'patient',dd:true,steps,reply,lesson,capDone:raw?'Appointment not found, although it exists':'Options offered'};
+};
+
+/* ---- referral status ---- */
+SC.refstatus=(p,m)=>{
+  const sp=SPEC[p.spec||'ent'],raw=m==='raw';
+  const steps=[
+    S('user>orch','Request received','The question reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','It identifies a status question about a referral.','kv',{Task:'Referral status',Specialty:sp.name,'Sent':'About three weeks ago'}),
+    S('orch>plan','Plan made','The planner lays out the steps.','plan',['Find the referral','Compare with the target time','Escalate if it is late','Tell the patient what happens next'],{lbl:'Make a plan'}),
+    S('orch>ref','Referral lookup','The referral agent takes the question.','kv',{Find:`${sp.name} referral for ${PT.name}`},{lbl:'Find referral'})
+  ];
+  if(!raw){
+    steps.push(
+      S('ref>t_inbox','Referral found','It finds the e-referral in the inbox.','kv',{From:'Dr. Amna Al Kaabi, family medicine',Received:'7 Oct 2026',Reason:'Recurring sinus infections (coded)',Status:'Waiting for review by the specialist team'},{lbl:'Search inbox',pl:0}),
+      S('ref>d_rules','Target time checked','It compares the waiting time with the agreed target.','rows',{cols:['Item','Value'],rows:[['Target for routine review','10 working days'],['Review due by','21 Oct'],['Today','28 Oct'],['Status',F('Overdue by 5 working days','Late against the target. Escalate.')]]},{lbl:'Check target',st:'warn',pl:1}),
+      S('ref>orch','Overdue referral','The referral is late. The orchestrator must escalate it.','kv',{Result:F('Overdue','Needs a person to act')},{lbl:'Overdue',st:'warn'}),
+      S('orch>guard','Escalation rule','The reviewer applies the rule for overdue referrals: alert a coordinator and give the patient a date.','kv',{Rule:'Overdue referral: alert coordinator, give the patient a response time',Action:'Notify coordinator'},{lbl:'Apply rule'}),
+      S('guard>h_coord','Coordinator alerted','The access coordinator gets an alert with the details.','kv',{Alert:`${sp.name} referral for ${PT.name} is 5 working days overdue. Patient asked for a status update.`,'Respond by':'Tomorrow, 13:00'},{lbl:'Alert',pl:2}),
+      S('guard>orch','Approved to send','The answer may go out.','kv',{Result:OK('OK')},{pl:3}),
+      ANSWER
+    );
+  } else {
+    steps.push(
+      S('ref>t_inbox','Inbox searched','It searches the referral inbox. The referral arrived by fax and was saved as a scanned file elsewhere.','kv',{Search:`${sp.name} referrals for ${PT.mrn}`,Result:F('None found','The referral came by fax on 7 Oct. It is a scanned PDF in a shared folder, so it cannot be searched.')},{lbl:'Search inbox',st:'warn'}),
+      S('ref>orch','No referral found','From the data it has, there is no referral.','kv',{Result:F('Not found','The referral exists, but not in a form the agent can read.')},{lbl:'Not found',st:'warn'}),
+      S('orch>guard','Answer reviewed','The reviewer checks the draft. It is polite and safe, so it passes.','kv',{'Personal data':'Not shared','Action risk':'None'},{lbl:'Check draft'}),
+      S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+      ANSWER
+    );
+  }
+  const reply=raw?`<p>I can't find a referral to ${esc(sp.name)} for you. Please ask your doctor to send a new referral, and I'll track it for you once it arrives.</p>`:
+    `<p>Your ${esc(sp.name)} referral from Dr. Amna Al Kaabi arrived on <b>7 October</b>. It is waiting for review by the specialist team, which should have happened by 21 October.</p><p>I've flagged the delay to the access coordinator, who will contact you by <b>tomorrow at 13:00</b>. You don't need to ask your doctor to send it again.</p>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',text:'The referral exists, but it arrived by fax and sits in a scanned folder. The patient goes back to the doctor for a new referral, and the wait starts again from zero.'}:
+    {type:'good',title:'Why this worked',text:'Structured e-referrals and written target times let the agent find the referral, spot the delay and escalate it. Try the same request with raw data.'};
+  return {who:'patient',dd:true,steps,reply,lesson,capDone:raw?'Patient sent back to start':'Delay found and escalated'};
+};
+
+/* ---- coverage ---- */
+const PROC={mri:{name:'knee MRI',pre:true},ct:{name:'CT scan',pre:true},physio:{name:'physiotherapy',pre:false,oldNo:true},us:{name:'ultrasound',pre:false},xray:{name:'X-ray',pre:false},blood:{name:'blood tests',pre:false}};
+SC.coverage=(p,m)=>{
+  const t=(p.text||'').toLowerCase();
+  const pk=/\bct\b|cat scan/.test(t)?'ct':/physio/.test(t)?'physio':/ultrasound/.test(t)?'us':/x-?ray/.test(t)?'xray':/blood/.test(t)?'blood':'mri';
+  const pr=PROC[pk],raw=m==='raw';
+  const steps=[
+    S('user>orch','Request received','The question reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','It identifies a coverage question and the procedure.','kv',{Task:'Coverage question',Procedure:pr.name,Plan:'Basic plan (from patient record)'}),
+    S('orch>plan','Plan made','The planner lays out the steps.','plan',pr.pre&&!raw?['Check the plan is active','Look up the rule for this procedure','Find the doctor’s referral','Prepare the pre-approval request','Coordinator approves, then submit']:['Check the plan is active','Look up the rule for this procedure','Answer the patient'],{lbl:'Make a plan'}),
+    S('orch>cov','Coverage check','The coverage agent takes the question.','kv',{Question:`Is ${pr.name} covered on the Basic plan?`},{lbl:'Covered?'}),
+    S('cov>t_elig','Plan checked','It confirms the plan is active.','kv',{Plan:'Basic plan',Status:OK('Active until 31 Mar 2027')},{lbl:'Eligibility',pl:0})
+  ];
+  const rule2026={mri:['Covered','Pre-approval required','Referral and clinical notes'],ct:['Covered','Pre-approval required','Referral and clinical notes'],physio:['Covered','Up to 12 sessions a year','Referral'],us:['Covered','No pre-approval','Referral'],xray:['Covered','No pre-approval','Referral'],blood:['Covered','No pre-approval','Doctor’s request']}[pk];
+  if(!raw){
+    steps.push(S('cov>d_ins','Rule looked up','It reads the current rule for this procedure.','rows',{cols:['Procedure','Cover','Condition','Needs'],rows:[[pr.name,...rule2026]],title:'Insurance rules, version 2026.1, valid from 1 Jan 2026. Owner: revenue cycle team.'},{lbl:'Look up rule',pl:1}));
+  } else {
+    const old=pk==='mri'||pk==='ct'?['Covered',F('No pre-approval','Rule from 2024. Replaced in January 2026, but this old table is still the one the agent reads.'),'Referral']:pk==='physio'?[F('Not covered','Rule from 2024. Physiotherapy has been covered since January 2026.'),'',''] :['Covered','No pre-approval','Referral'];
+    steps.push(S('cov>d_ins','Rule looked up','It reads the rule table. The table has no version and no owner.','rows',{cols:['Procedure','Cover','Condition','Needs'],rows:[[pr.name,...old]],title:'Insurance rules. Last edited March 2024. No owner listed.'},{lbl:'Look up rule',st:'warn',pl:1,note:'Nobody owns this table, so nobody replaced it when the rules changed.'}));
+  }
+  let reply,lesson,chips;
+  if(pr.pre&&!raw){
+    steps.push(
+      S('cov>orch','Pre-approval needed','Covered, but the insurer must approve it first.','kv',{Answer:'Covered after pre-approval'},{lbl:'Needs pre-approval'}),
+      S('orch>ref','Referral needed','The orchestrator asks the referral agent for the doctor’s referral.','kv',{Find:`Referral for ${pr.name}`},{lbl:'Find referral'}),
+      S('ref>t_inbox','Referral found','The referral and supporting documents are in the inbox.','kv',{Referral:'Dr. Layla Mansour, orthopaedics, 20 Oct 2026',Reason:'Knee pain after a fall, suspected meniscus tear',Attached:'X-ray report, clinical notes'},{lbl:'Search inbox',pl:2}),
+      S('ref>orch','Documents ready','Everything the insurer needs is available.','kv',{Documents:OK('Complete')},{lbl:'Complete'}),
+      S('orch>guard','Submission reviewed','Sending clinical data to an insurer is an outside action, so a person must approve it.','kv',{Action:'Submit pre-approval request to insurer',Risk:'External submission with clinical data',Rule:'Needs coordinator approval'},{lbl:'Check action',st:'wait',pl:3}),
+      S('guard>h_coord','Approval requested','The access coordinator sees the request and decides.','kv',{Request:`Pre-approval for ${pr.name}, ${PT.name}`,Includes:'Referral, X-ray report, clinical notes'},{lbl:'Please approve',st:'wait',approve:{q:`Submit the pre-approval request for ${PT.name}'s ${pr.name} to the insurer? It includes the referral, X-ray report and clinical notes.`,yes:'Approve and submit'}}),
+      S('orch>cov','Submit request','Approved. The coverage agent submits the request.','kv',{Action:'Submit'},{lbl:'Submit',a:'Submitting the request'}),
+      S('cov>t_elig','Request submitted','The insurer confirms receipt.','kv',{Reference:'PA-2026-77419','Usual decision time':'2 working days'},{lbl:'Submitted',pl:4,a:'Sending the request to the insurer'}),
+      S('cov>orch','Submission confirmed','Done.','kv',{Result:OK('Submitted')}),
+      ANSWER
+    );
+    reply=`<p>Yes, your ${esc(pr.name)} is covered by your Basic plan, but the insurer must approve it first.</p><p>I prepared the request with Dr. Layla Mansour's referral and your X-ray report. The access coordinator approved it and it was sent today, reference <b>PA-2026-77419</b>. The insurer usually decides within 2 working days. I'll message you when there is a decision, and then you can book the scan.</p>`;
+    lesson={type:'good',title:'Why this worked',text:'The agent read the current, versioned rule. It prepared the paperwork and a person approved the outside submission. Try the same request with raw data.'};
+  } else {
+    steps.push(
+      S('cov>orch','Answer ready','The coverage agent returns its answer.','kv',{Answer:raw&&pk==='physio'?'Not covered':raw?'Covered, no pre-approval':'Covered'},{lbl:'Answer',st:raw&&(pr.pre||pr.oldNo)?'warn':undefined}),
+      S('orch>guard','Answer reviewed','The reviewer checks the draft. Nothing is submitted, so the risk looks low.','kv',{'Action risk':'Low. Information only','Personal data':'Only with the verified patient'},{lbl:'Check draft'}),
+      S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')},{pl:2}),
+      ANSWER
+    );
+    if(raw&&pr.pre){
+      reply=`<p>Yes, your ${esc(pr.name)} is fully covered by your Basic plan and does not need pre-approval. You can book the scan directly.</p>`;
+      lesson={type:'bad',title:'What went wrong',text:`Since January 2026 this scan needs pre-approval. If the patient books it now, the insurer rejects the claim and the patient gets the bill. The answer sounded certain because the agent had no way to know the rule table was out of date.`};
+    } else if(raw&&pr.oldNo){
+      reply=`<p>Unfortunately physiotherapy is not covered by your Basic plan. You can still book it as a self-paying patient.</p>`;
+      lesson={type:'bad',title:'What went wrong',text:'Physiotherapy has been covered since January 2026. The old rule table sends the patient away or makes her pay for care she is entitled to.'};
+    } else if(raw){
+      reply=`<p>Yes, ${esc(pr.name)} ${pr.name.endsWith('s')?'are':'is'} covered by your Basic plan with a referral. No pre-approval is needed.</p>`;
+      lesson={type:'bad',title:'Right answer, by luck',text:'The rule for this procedure has not changed since 2024, so the old table happened to be right. Nobody can tell in advance when it will be wrong.'};
+    } else {
+      reply=`<p>Yes, ${esc(pr.name)} ${pr.name.endsWith('s')?'are':'is'} covered by your Basic plan. ${esc(rule2026[1])}. You need: ${esc(rule2026[2].toLowerCase())}.</p>`;
+      lesson={type:'good',title:'Why this worked',text:'The agent read the current, versioned rule with a named owner. Try the same request with raw data.'};
+    }
+  }
+  return {who:'patient',dd:true,steps,reply,lesson,chips,capDone:raw?'Confident answer from an old rule':'Correct answer with current rules'};
+};
+
+/* ---- earlier slot for a child ---- */
+SC.earlier=(p,m)=>{
+  const sp=SPEC.paed,raw=m==='raw',site=siteOf(sp,'Ajman');
+  const steps=[
+    S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','It identifies a request for an earlier slot for a child.','kv',{Task:'Find an earlier appointment',For:'Daughter, Salama Al Hammadi (6)',Current:`Wed 2 Dec, 16:30, ${sp.docs[0]}`}),
+    S('orch>sch','Search requested','The scheduling agent takes the request.','kv',{Find:'Earlier paediatrics slot for the daughter'},{lbl:'Find earlier slot'}),
+    S('sch>d_ehr','Guardian checked','Before acting for a child, it checks that the parent is the registered guardian.','kv',{'Guardian link':OK(`${PT.name} is the registered guardian of Salama Al Hammadi`)},{lbl:'Guardian?'})
+  ];
+  const free={day:'Mon 9 Nov',time:'16:00',doc:sp.docs[0],site};
+  const alt={day:'Thu 19 Nov',time:'08:30',doc:sp.docs[2],site};
+  if(!raw){
+    steps.push(S('sch>t_sched','Slots searched','It searches the live booking system, including cancellations from today.','rows',{cols:['Date','Time','Doctor','Status'],rows:[[free.day,free.time,free.doc,OK('Freed today at 08:12')],[alt.day,alt.time,alt.doc,'Free'],['Wed 2 Dec','16:30',sp.docs[0],'Current booking']],title:'Live feed. Last update: 2 minutes ago.'},{lbl:'Search, live'}));
+  } else {
+    steps.push(S('sch>t_sched','Slots searched','It searches the booking data. The data is copied once a night.','rows',{cols:['Date','Time','Doctor','Status'],rows:[['Wed 2 Dec','16:30',sp.docs[0],'Current booking']],title:'Copy from last night, 23:00.'},{lbl:'Search copy',st:'warn',note:'A slot on Mon 9 Nov was freed at 08:12 today. The overnight copy does not show it yet.'}));
+  }
+  steps.push(
+    S('sch>orch',raw?'Nothing earlier':'Earlier slots found',raw?'From the data it has, nothing earlier is free.':'Two earlier slots, one with the same doctor.','kv',raw?{Result:F('No earlier slot','The data is up to 10 hours old.')}:{Result:OK('2 earlier options')},{lbl:raw?'None':'2 options',st:raw?'warn':undefined}),
+    S('orch>guard','Answer reviewed','The reviewer checks the draft.','kv',{'Acting for a child':'Allowed, guardian verified','Action risk':'Low. Offer only'},{lbl:'Check draft'}),
+    S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+    ANSWER
+  );
+  const pick=s=>play('confirm',{text:`Move my daughter's appointment to ${s.day}, ${s.time}`,slot:s,kind:'move',old:'Wed 2 Dec, 16:30'});
+  const reply=raw?`<p>There are no earlier paediatrics appointments before 2 December. I've added your daughter to the waiting list and will message you if a slot opens.</p>`:
+    `<p>Good news: a slot opened up this morning. Your daughter's appointment is on Wed 2 Dec. Earlier options:</p>${slotHtml([free,alt],pick)}<p>If you'd rather keep 2 December, I can add her to the waiting list instead.</p>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',text:'A slot with the same doctor was freed at 08:12 today. The booking data is copied once a night, so the agent could not see it. With live data, the child would be seen more than three weeks earlier.'}:
+    {type:'good',title:'Why this worked',text:'Slots come from a live feed, so a cancellation from this morning is visible straight away. Try the same request with raw data.'};
+  return {who:'patient',dd:true,steps,reply,lesson,capDone:raw?'Missed a free slot':'Earlier slot found'};
+};
+
+/* ---- what to bring ---- */
+SC.docs=(p,m)=>{
+  const sp=SPEC[p.spec||'endo'],raw=m==='raw',site=siteOf(sp,'Ajman');
+  const steps=[
+    S('user>orch','Request received','The question reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+    S('@orch','Request understood','It identifies a preparation question for an upcoming visit.','kv',{Task:'Prepare for first visit',Specialty:sp.name}),
+    S('orch>sch','Appointment lookup','The scheduling agent finds the appointment.','kv',{Find:`Next ${sp.name.toLowerCase()} appointment`},{lbl:'Find appointment'}),
+    S('sch>t_sched','Appointment found','The appointment is in the booking system.','kv',{Appointment:`Mon 9 Nov, 10:30, ${sp.docs[0]}, ${site}`},{lbl:'Lookup'}),
+    S('sch>orch','Appointment confirmed','The details go back to the orchestrator.','kv',{Result:OK('Found')}),
+    S('orch>ref','Requirements check','The referral agent checks what the clinic needs and what is already on file.','kv',{Check:'First-visit requirements and recent results'},{lbl:'What is needed?'}),
+    raw?S('ref>d_ehr','Record checked','It checks the patient record for recent results. Lab results live in a separate system that is not linked.','rows',{cols:['Item','Date','On file'],rows:[['HbA1c',F('None found','Lab results sit in a separate lab system that is not linked to the patient record.'),'No'],['Lipid panel',F('None found','Same problem: the lab system is not linked.'),'No'],['Eye screening','None found','No']]},{lbl:'Check record',st:'warn'}):
+        S('ref>d_ehr','Record checked','It checks the patient record for recent results.','rows',{cols:['Item','Date','On file'],rows:[['HbA1c','12 Oct 2026',OK('Yes')],['Lipid panel','12 Oct 2026',OK('Yes')],['Eye screening','None','Needed']]},{lbl:'Check record'}),
+    S('ref>orch','Requirements ready','The personal checklist goes back to the orchestrator.','kv',{Result:raw?'Bring all results, repeat tests':'Personal checklist ready'},{lbl:'Checklist'}),
+    S('orch>guard','Answer reviewed','The reviewer checks that the answer gives no medical advice.','kv',{'Medical advice':'None','Personal data':'Only with the verified patient'},{lbl:'Check draft'}),
+    S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+    ANSWER
+  ];
+  const reply=raw?`<p>For your first visit on <b>Mon 9 Nov at 10:30</b>, please bring:</p><ul><li>Your Emirates ID and insurance card</li><li>A list of the medicines you take</li><li>Your latest blood test results (HbA1c and lipid panel). If you don't have recent results, please do a fasting blood test before your visit.</li></ul>`:
+    `<p>For your first visit on <b>Mon 9 Nov at 10:30</b> with ${esc(sp.docs[0])}, please bring:</p><ul><li>Your Emirates ID and insurance card</li><li>A list of the medicines you take, and your glucose meter if you use one</li></ul><p>You don't need to bring blood results. The team can already see your HbA1c and lipid results from 12 October. Your record shows no eye screening yet, so the clinic may offer you one.</p>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',text:'Recent results exist, but the lab system is not linked to the patient record. The patient is asked to repeat a fasting blood test she had two weeks ago.'}:
+    {type:'good',title:'Why this worked',text:'Lab results are linked to the patient record, so the answer is personal and avoids a repeat test. Try the same request with raw data.'};
+  return {who:'patient',dd:true,steps,reply,lesson,capDone:raw?'Unnecessary repeat test requested':'Personal checklist sent'};
+};
+
+/* ---- staff: process a new referral ---- */
+SC.referral=(p,m)=>{
+  const raw=m==='raw',sp=SPEC.card,site='Sharjah Specialty Clinic';
+  const steps=[
+    S('user>orch','Request received','A staff member forwards a new referral. Staff log-in gives access to the referral queue.','kv',{Message:p.text,User:'Access coordinator (staff log-in)'},{lbl:'New request'}),
+    S('@orch','Request understood','It identifies the task and the patient.','kv',{Task:'Process a new referral',Patient:'Mariam Saeed',From:'Dr. Khalid Al Nuaimi, Kalba Health Centre',Specialty:'Cardiology'}),
+    S('orch>plan','Plan made','The planner lays out the steps.','plan',['Read the referral and check it is complete','Set urgency from the referral rules','Find a slot within the target time','Check coverage','Get approval if the case is urgent','Book and inform patient and referring doctor'],{lbl:'Make a plan'}),
+    S('orch>ref','Referral handed over','The referral agent takes the case.','kv',{Case:'Mariam Saeed, cardiology'},{lbl:'Read referral'})
+  ];
+  if(!raw){
+    steps.push(
+      S('ref>t_inbox','Referral read','It opens the structured e-referral.','kv',{Received:'27 Oct 2026, 16:05',Format:'Structured e-referral','Reason (coded)':'New chest pain on exertion',Attached:'ECG from 26 Oct, medicine list',Missing:'Lipid panel (optional)'},{lbl:'Open referral',pl:0}),
+      S('ref>d_ehr','Patient checked','It confirms the patient and relevant history.','kv',{Patient:OK('Mariam Saeed, MRN 5521-930, one record'),Age:'58','Known conditions':'Type 2 diabetes, high blood pressure','Earlier cardiology':'None'},{lbl:'Which patient?'}),
+      S('ref>d_rules','Urgency set','It applies the written referral rules.','rows',{cols:['Reason','Urgency','Seen within'],rows:[[OK('New chest pain on exertion'),OK('Urgent'),OK('14 days')],['Known stable angina, review','Soon','6 weeks'],['Routine follow-up','Routine','12 weeks']]},{lbl:'Apply rules',pl:1}),
+      S('ref>orch','Urgent case','Urgent: must be seen by 10 November.','kv',{Urgency:F('Urgent','Must be seen within 14 days, by 10 Nov'),'Seen by':'10 Nov'},{lbl:'Urgent, by 10 Nov',st:'warn'}),
+      S('orch>sch','Slot search','The scheduling agent looks for a slot inside the target.','kv',{Specialty:'Cardiology',Before:'10 Nov',Area:'Sharjah or Kalba'},{lbl:'Find slot by 10 Nov'}),
+      S('sch>t_sched','Slots found','Live slots inside the target time.','rows',{cols:['Date','Time','Doctor','Clinic'],rows:[['Tue 3 Nov','10:20',sp.docs[0],site],['Thu 5 Nov','08:40',sp.docs[2],site]]},{lbl:'Search, live',a:'Searching live slots'}),
+      S('sch>orch','Best slot chosen','Earliest slot, held for 30 minutes.','kv',{Held:`Tue 3 Nov, 10:20, ${sp.docs[0]}`},{lbl:'Held',pl:2,a:'Holding the earliest slot'}),
+      S('orch>cov','Coverage check','The coverage agent checks the plan.','kv',{Question:'Cardiology consultation with referral'},{lbl:'Covered?'}),
+      S('cov>t_elig','Coverage confirmed','Covered with a referral, no pre-approval needed.','kv',{Plan:'Enhanced plan',Cover:OK('Covered with referral')},{lbl:'Eligibility',pl:3}),
+      S('cov>orch','Covered','The answer goes back.','kv',{Result:OK('Covered')}),
+      S('orch>guard','Action reviewed','Urgent cases need a person to approve the booking.','kv',{Rule:'Urgent referral: coordinator approves booking',Action:`Book Tue 3 Nov, 10:20`},{lbl:'Check action',st:'wait'}),
+      S('guard>h_coord','Approval requested','The access coordinator decides.','kv',{Request:`Book Mariam Saeed with ${sp.docs[0]}, Tue 3 Nov 10:20`},{lbl:'Please approve',st:'wait',pl:4,approve:{q:`Book Mariam Saeed (urgent cardiology, new chest pain on exertion) with ${sp.docs[0]} on Tue 3 Nov at 10:20? This is inside the 14-day target.`,yes:'Approve booking'}}),
+      S('orch>sch','Booking made','Approved. The slot is booked.','kv',{Result:OK('Booked, ref SH-40977')},{lbl:'Book',a:'Booking the slot'}),
+      S('orch>com','Messages drafted','The communication agent informs the patient and the referring doctor.','kv',{Patient:'SMS in Arabic and English','Referring doctor':'Letter via the referral system','Also':'Asks Kalba Health Centre for the lipid panel'},{lbl:'Inform'}),
+      S('com>t_msg','Messages sent','The patient gets the appointment by SMS.','msg',{to:'SMS to Mariam Saeed',text:`Your cardiology appointment: Tue 3 Nov, 10:20, ${sp.docs[0]}, ${site}. Ref SH-40977. Please bring your Emirates ID and your medicines.`},{lbl:'SMS',pl:5}),
+      ANSWER
+    );
+  } else {
+    steps.push(
+      S('ref>t_inbox','Referral read','It opens the referral. It arrived as a scanned fax, read by text recognition.','kv',{Received:'27 Oct 2026, 16:05',Format:F('Scanned fax (PDF)','Free text read by text recognition. No coded reason.'),'Reason (free text)':'"CP on exertion, ?angina, pls see"','Urgency field':F('Blank','The referring doctor did not tick a box on the fax form.')},{lbl:'Open referral',st:'warn'}),
+      S('ref>d_ehr','Patient checked','It looks the patient up and finds two possible records.','rows',{cols:['Patient ID','Name','Date of birth'],rows:[['MRN 5521-930','Mariam Saeed','2 Feb 1968'],[F('MRN 6110-245','Possible duplicate. The agent picked the first record.'),'Mariam Saeed Ali','2 Feb 1968']]},{lbl:'Which patient?',st:'warn'}),
+      S('ref>d_rules','Urgency set','It applies the referral rules. The rules use coded reasons, and "CP" is not in the code list.','rows',{cols:['Reason','Urgency','Seen within'],rows:[[F('No match for "CP on exertion"','Abbreviation not in the code list. Falls back to the default.'),F('Routine (default)','An urgent cardiac case is now routine.'),'12 weeks']]},{lbl:'Apply rules',st:'warn'}),
+      S('ref>orch','Routine case','Classified as routine. Nothing looks unusual to the agent.','kv',{Urgency:'Routine','Seen by':'Within 12 weeks'},{lbl:'Routine'}),
+      S('orch>sch','Slot search','The scheduling agent looks for the first routine slot.','kv',{Specialty:'Cardiology',Before:'20 Jan 2027'},{lbl:'Find routine slot'}),
+      S('sch>t_sched','Slot found','First routine slot.','rows',{cols:['Date','Time','Doctor','Clinic'],rows:[['Mon 11 Jan 2027','09:00',sp.docs[2],site]]},{lbl:'Search'}),
+      S('sch>orch','Slot held','The slot is held.','kv',{Held:'Mon 11 Jan 2027, 09:00'},{lbl:'Held'}),
+      S('orch>cov','Coverage check','The coverage agent checks the plan.','kv',{Question:'Cardiology consultation with referral'},{lbl:'Covered?'}),
+      S('cov>t_elig','Coverage confirmed','Covered with a referral.','kv',{Plan:'Enhanced plan',Cover:'Covered with referral'},{lbl:'Eligibility'}),
+      S('cov>orch','Covered','The answer goes back.','kv',{Result:'Covered'}),
+      S('orch>guard','Action reviewed','The rule says routine bookings need no approval. The guardrail works exactly as designed.','kv',{Rule:'Routine referral: no approval needed',Action:F('Book automatically','No person sees this case, because the data made it look routine.')},{lbl:'Check action',st:'warn'}),
+      S('guard>orch','Cleared','Booked without review.','kv',{Result:'OK'}),
+      S('orch>com','Messages drafted','The patient and referring doctor are informed.','kv',{Patient:'SMS','Referring doctor':'Letter'},{lbl:'Inform'}),
+      S('com>t_msg','Messages sent','The patient gets the appointment by SMS.','msg',{to:'SMS to Mariam Saeed',text:`Your cardiology appointment: Mon 11 Jan 2027, 09:00, ${sp.docs[2]}, ${site}. Ref SH-41020.`},{lbl:'SMS'}),
+      ANSWER
+    );
+  }
+  const reply=raw?`<p>Referral processed as <b>routine</b>.</p><div class="card"><dl><dt>Patient</dt><dd>Mariam Saeed, MRN 5521-930</dd><dt>Booked</dt><dd>Mon 11 Jan 2027, 09:00, ${esc(sp.docs[2])}</dd><dt>Informed</dt><dd>Patient by SMS, Dr. Khalid Al Nuaimi by letter</dd></dl></div>`:
+    `<p>Referral accepted as <b>urgent</b> and booked after your approval.</p><div class="card"><dl><dt>Patient</dt><dd>Mariam Saeed, MRN 5521-930</dd><dt>Booked</dt><dd>Tue 3 Nov, 10:20, ${esc(sp.docs[0])}</dd><dt>Target</dt><dd>Seen within 14 days (by 10 Nov)</dd><dt>Informed</dt><dd>Patient by SMS, Dr. Khalid Al Nuaimi by letter</dd><dt>Follow-up</dt><dd>Lipid panel requested from Kalba Health Centre (optional)</dd></dl></div>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',items:['The referral came as a fax with an abbreviation ("CP") the rules do not recognise, and the urgency box was blank.','The agent fell back to "routine". A patient with new chest pain on exertion was booked 10 weeks out.','No person saw it. The guardrail did its job, but it was fed the wrong urgency.'],text:'Same agent, same model, same guardrails. Only the data changed.'}:
+    {type:'good',title:'Why this worked',text:'A structured e-referral with a coded reason met written urgency rules. Because the case was urgent, a person approved the booking. Now try it with raw data.'};
+  return {who:'staff',dd:true,steps,reply,lesson,rejected:'<p>Not booked. The slot is released. The case stays in your queue marked urgent, so you can choose another slot.</p>',capDone:raw?'Urgent patient booked 10 weeks out, unseen':'Urgent case booked within target'};
+};
+
+/* ---- staff: overdue urgent referrals ---- */
+SC.sla=(p,m)=>{
+  const raw=m==='raw';
+  const all=[['Khalid Ibrahim','Cardiology','9 Oct','19 days','Slot Tue 3 Nov 08:40 held, approve to book'],['Aisha Mohammed','Neurology','12 Oct','16 days','No slots before 10 Nov. Escalate to neurology lead'],['Omar Al Suwaidi','Ophthalmology','13 Oct','15 days','Patient not reached twice. Try WhatsApp'],['Hessa Rashid','Orthopaedics','14 Oct','14 days','Slot Thu 29 Oct 13:20 free, offer today']];
+  const steps=[
+    S('user>orch','Request received','A staff member asks for a report.','kv',{Message:p.text,User:'Access coordinator (staff log-in)'},{lbl:'New request'}),
+    S('@orch','Request understood','It turns the question into a precise query.','kv',{Task:'Report overdue urgent referrals',Period:'This week',Scope:'Ajman cluster',Overdue:'Urgent and waiting longer than 14 days'}),
+    S('orch>ref','Report requested','The referral agent builds the list.','kv',{Query:'Open urgent referrals older than 14 days'},{lbl:'Build list'}),
+    raw?S('ref>t_inbox','Referrals pulled','It pulls open referrals. Urgency is written four different ways.','rows',{cols:['Urgency value','Count','Counted as urgent?'],rows:[['Urgent','6',OK('Yes')],['URG',F('9','Means urgent, but spelled differently.'),'No'],['U',F('3','Means urgent, but spelled differently.'),'No'],['(blank)','41','No']],title:'214 open referrals'},{lbl:'Pull referrals',st:'warn'}):
+        S('ref>t_inbox','Referrals pulled','It pulls open referrals. Urgency uses one agreed code.','rows',{cols:['Urgency','Count'],rows:[['Urgent','19'],['Soon','52'],['Routine','143']],title:'214 open referrals'},{lbl:'Pull referrals'}),
+    S('ref>d_rules','Target applied','It applies the target time for urgent referrals.','kv',{'Urgent target':'Seen within 14 days'},{lbl:'Apply target'}),
+    S('ref>orch','List ready','The overdue list goes back to the orchestrator.','kv',{'Overdue urgent':raw?F('1','Three more are hidden behind other spellings.'):'4'},{lbl:raw?'1 overdue':'4 overdue',st:raw?'warn':undefined}),
+    S('orch>guard','Answer reviewed','The reviewer checks that this user may see these patients.','kv',{'User role':'Access coordinator','Patient data':'Allowed for this role and cluster'},{lbl:'Check access'}),
+    S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+    ANSWER
+  ];
+  const rows=raw?[all[0]]:all;
+  const reply=`<p>${raw?'<b>1 urgent referral</b> is':'<b>4 urgent referrals</b> are'} past the 14-day target this week:</p><div class="tbl-wrap"><table class="mini-table"><thead><tr><th>Patient</th><th>Specialty</th><th>Waiting</th><th>Suggested action</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`).join('')}</tbody></table></div>`;
+  const lesson=raw?{type:'bad',title:'What went wrong',text:'There are 4. Three are coded "URG" or "U" instead of "Urgent", so the count missed them. A leader would act on a number that is 75% too low.'}:
+    {type:'good',title:'Why this worked',text:'Urgency uses one agreed code, so the count is complete. Try the same request with raw data.'};
+  return {who:'staff',dd:true,steps,reply,lesson,capDone:raw?'Report missed 3 of 4 cases':'Complete overdue list'};
+};
+
+/* ---- guardrail: emergency ---- */
+SC.emergency=(p)=>({who:'patient',dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+  S('@orch','Warning signs found','Before anything else, the orchestrator scans for warning signs. It finds them.','kv',{'Warning signs':F('Chest pain now, arm numbness','Possible emergency'),Booking:'Paused'},{st:'warn'}),
+  S('orch>guard','Emergency rule','The reviewer applies the emergency rule: stop, give emergency advice, alert a nurse.','kv',{Rule:'Possible emergency: no booking, emergency advice, alert triage nurse',Decision:'The agent does not judge how serious it is'},{lbl:'Possible emergency',st:'warn'}),
+  S('guard>h_nurse','Nurse alerted','A triage nurse is alerted at once with the details.','kv',{Alert:`${PT.name} reports chest pain and left arm numbness in the app`,Phone:PT.phone,'Call back':'Within 5 minutes'},{lbl:'Urgent alert',st:'warn'}),
+  S('guard>orch','Emergency reply','The orchestrator must send the emergency reply, nothing else.','kv',{Reply:'Emergency template, no booking'},{lbl:'Emergency reply'}),
+  ANSWER],
+  reply:`<div class="card alert"><b>This could be an emergency.</b><p style="margin:4px 0 0">Call <b>998</b> now or go to the nearest emergency department. Do not wait for an appointment.</p></div><p>A triage nurse has been alerted and will call you on ${esc(PT.phone)}.</p>`,
+  lesson:{type:'info',title:'Guardrails come first',text:'The emergency check runs before any booking. The agent never decides whether chest pain is serious; it hands over at once. This works the same with raw or curated data.'},capDone:'Emergency handed to a person'});
+
+/* ---- guardrail: medical advice ---- */
+SC.advice=(p)=>({who:'patient',dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+  S('@orch','Request understood','It recognises a question about medicine.','kv',{Task:F('Medicine advice','Clinical question, outside this agent’s job')},{st:'warn'}),
+  S('orch>guard','No-advice rule','The reviewer applies the rule: no clinical advice, offer a clinician instead.','kv',{Rule:'No diagnosis or medicine advice',Action:'Offer a nurse call'},{lbl:'Clinical question',st:'warn'}),
+  S('guard>h_nurse','Nurse call requested','The triage nurse queue gets the question.','kv',{Question:p.text,Patient:PT.name},{lbl:'Call request'}),
+  S('guard>orch','Book a call','The orchestrator books a call slot.','kv',{Next:'Book nurse call'},{lbl:'Book call'}),
+  S('orch>sch','Call slot requested','The scheduling agent finds the next nurse call slot.','kv',{Find:'Nurse phone call, today'},{lbl:'Find call slot'}),
+  S('sch>t_sched','Call booked','A call is booked for today.','kv',{Booked:OK('Today, 11:30, triage nurse phone call')},{lbl:'Book',a:'Booking a nurse call'}),
+  S('sch>orch','Confirmed','Done.','kv',{Result:OK('Booked')}),
+  ANSWER],
+  reply:`<p>I can't give advice about medicines. Please don't stop or change any medicine without speaking to a clinician.</p><p>I've booked a call with a triage nurse <b>today at 11:30</b> on ${esc(PT.phone)}. They will answer your question before your appointment.</p>`,
+  lesson:{type:'info',title:'The agent knows its limits',text:'Medicine advice is a clinical decision, so the agent hands it to a nurse and books the call. That is still useful: the patient gets an answer today.'},capDone:'Clinical question routed to a nurse'});
+
+/* ---- guardrail: privacy ---- */
+SC.privacy=(p)=>({who:'patient',dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+  S('@orch','Request understood','It recognises a request for another person’s information.','kv',{Task:'Share another adult’s appointment',Person:'Husband, Ahmed Al Hammadi'}),
+  S('orch>sch','Access check','The scheduling agent checks whether the patient may see her husband’s appointments.','kv',{Check:'Proxy access for the patient on her husband’s record'},{lbl:'Allowed?'}),
+  S('sch>d_ehr','Consent checked','It checks the record for a registered proxy.','kv',{'Proxy access':F('None on file','Her husband has not given her access.')},{lbl:'Consent?',st:'warn'}),
+  S('sch>orch','Not allowed','No consent on file.','kv',{Result:'No access'},{lbl:'No access',st:'warn'}),
+  S('orch>guard','Privacy rule','The reviewer applies the privacy rule.','kv',{Rule:'Share only with the patient or a registered proxy',Result:F('Blocked','No appointment details may be shared')},{lbl:'Privacy rule',st:'warn'}),
+  S('guard>orch','Safe reply','Explain how to get access, without revealing anything.','kv',{Reply:'Explain proxy access'}),
+  ANSWER],
+  reply:`<p>I can't share another adult's appointments, even with family. Your husband can give you access in the app under <b>Settings, Family access</b>. After that, I can help you with his appointments too.</p>`,
+  lesson:{type:'info',title:'Privacy holds',text:'The agent did not reveal whether her husband even has an appointment. Consent decides, not who asks.'},capDone:'Request blocked by the privacy rule'});
+
+/* ---- Arabic booking ---- */
+SC.arabic=(p,m)=>{
+  const sk=findSpec(p.text)||'fam',sp=SPEC[sk],loc=findLoc(p.text)||'Ajman',ds=days(''),site=siteOf(sp,loc);
+  const sl=slotsGood(sp,'any',loc,ds);
+  const steps=[
+    S('user>orch','Request received','The message arrives in Arabic.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'رسالة جديدة'}),
+    S('@orch','Request understood','The orchestrator understands Arabic and records the language for the reply.','kv',{Language:'Arabic',Task:'Book a new appointment',Specialty:sp.name,Area:loc}),
+    S('orch>sch','Slot search','The scheduling agent searches in the usual way. Language does not change the logic.','kv',{Specialty:sp.name,When:ds.label,Area:loc},{lbl:'Find slots'}),
+    S('sch>d_dir','Directory checked','It checks the doctors and sessions.','rows',{cols:['Doctor','Clinic','Status'],rows:[[sp.docs[0],site,OK('Active')],[sp.docs[2],site,OK('Active')]]},{lbl:'Who works there?'}),
+    S('sch>t_sched','Slots found','Free slots next week.','rows',{cols:['Date','Time','Doctor'],rows:sl.map(s=>[s.day,s.time,s.doc])},{lbl:'Search'}),
+    S('sch>orch','Options returned','Three options.','kv',{Returned:'3 options'},{lbl:'3 options'}),
+    S('orch>com','Reply in Arabic','The communication agent writes the reply in Arabic.','msg',{to:'Chat reply',rtl:true,text:`وجدتُ ثلاثة مواعيد متاحة في عيادة ${sp.ar} الأسبوع القادم.`},{lbl:'Write in Arabic'}),
+    S('com>orch','Reply ready','The Arabic reply goes back to the orchestrator.','kv',{Language:OK('Arabic')}),
+    S('orch>guard','Answer reviewed','The reviewer checks the reply.','kv',{'Medical advice':'None','Action risk':'Low. Offer only'},{lbl:'Check draft'}),
+    S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+    ANSWER
+  ];
+  const pick=s=>play('confirm',{text:`احجز ${s.day} ${s.time}`,slot:s,kind:'book',ar:true});
+  const reply=`<p dir="rtl">وجدتُ ثلاثة مواعيد متاحة في عيادة ${esc(sp.ar)} في ${loc==='Ajman'?'عجمان':esc(loc)} الأسبوع القادم. اختر الموعد المناسب لك:</p>${slotHtml(sl,pick,true)}<p dir="ltr" style="color:var(--mute);font-size:12px">English: three ${esc(sp.name.toLowerCase())} appointments in ${esc(loc)} next week.</p>`;
+  return {who:'patient',dd:false,steps,reply,lesson:{type:'info',title:'Language is handled by one specialist',text:'The logic is the same in every language. Only the communication agent changes how the answer is written.'},capDone:'Answered in Arabic'};
+};
+
+/* ---- greeting, acknowledgement, fallback ---- */
+SC.hello=(p)=>({who:PERSONA,dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text},{lbl:'New message'}),
+  S('@orch','Request understood','A greeting or a question about what the agent can do.','kv',{Task:'Explain what I can help with'}),
+  ANSWER],
+  reply:`<p>Hello. I can help you book, move or cancel outpatient appointments, track referrals and check what your insurance covers. I can't give medical advice, but I can connect you with a nurse. What do you need?</p>`});
+SC.fallback=(p)=>({who:PERSONA,dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text},{lbl:'New message'}),
+  S('@orch','Not sure what is needed','The orchestrator cannot match the request to its job with enough confidence. It asks instead of guessing.','kv',{Task:F('Unclear','Confidence too low to act'),Decision:'Ask a clarifying question'},{st:'warn'}),
+  S('orch>guard','Answer reviewed','The reviewer checks the clarifying question.','kv',{Result:'OK'},{lbl:'Check'}),
+  S('guard>orch','Approved to send','OK to send.','kv',{Result:OK('OK')}),
+  ANSWER],
+  reply:`<p>I want to get this right. I handle appointments, referrals and insurance questions. Which of these is closest?</p>`,
+  chips:[
+    {l:'Book an appointment',fn:()=>play('book',{text:'I need to book an appointment',spec:'fam'})},
+    {l:'Move an appointment',fn:()=>play('resched',{text:'I need to move my appointment'})},
+    {l:'Check a referral',fn:()=>play('refstatus',{text:'What is the status of my referral?'})},
+    {l:'Insurance question',fn:()=>play('coverage',{text:'Is my MRI covered?'})}],
+  lesson:{type:'info',title:'Asking beats guessing',text:'When the agent is unsure, it asks. A confident guess is the most dangerous answer an agent can give.'}});
+
+/* ---------- routing free text ---------- */
+function route(text){
+  const t=text.toLowerCase();
+  const sp=findSpec(t);
+  if(/[؀-ۿ]/.test(text)) return {id:'arabic',p:{}};
+  if(/(chest pain|can'?t breathe|cannot breathe|short of breath|unconscious|bleeding heavily|heavy bleeding|stroke|\bnumb\b|fainted|severe pain|suicid|overdose)/.test(t)&&!/referral from|new referral/.test(t)) return {id:'emergency',p:{}};
+  if(/(husband|wife|brother|sister|mother|father|\bmum\b|\bmom\b|\bdad\b|friend|neighbou?r|someone else|my partner)/.test(t)) return {id:'privacy',p:{}};
+  if(/(new referral|referral from|process (the |this |a )?referral|triage (this|the) referral)/.test(t)) return {id:'referral',p:{}};
+  if(/(breach|overdue|\bsla\b|target time|backlog|how many (urgent )?referrals|waiting too long)/.test(t)) return {id:'sla',p:{}};
+  if(/referr/.test(t)&&/(status|where|update|heard|news|waiting|weeks? ago|sent|track)/.test(t)) return {id:'refstatus',p:{spec:sp}};
+  if(/(cover|insur|pre-?auth|pre-?approval|co-?pay|how much|cost|price|pay for)/.test(t)) return {id:'coverage',p:{}};
+  if(/(should i (stop|take|start|increase|reduce|skip)|dose|dosage|side effect|can i (take|eat|drink|stop)|medicin|tablet|pill|diagnos|is it (serious|normal|dangerous)|what does .* mean)/.test(t)) return {id:'advice',p:{}};
+  if(/(earlier|sooner|cancellation|waiting list|waitlist|bring forward)/.test(t)) return {id:'earlier',p:{}};
+  if(/(reschedul|move my|change my|can'?t make|cannot make|postpone|cancel)/.test(t)) return {id:'resched',p:{spec:sp}};
+  if(/(bring|prepare|what do i need|documents?|paperwork)/.test(t)) return {id:'docs',p:{spec:sp}};
+  if(sp||/(appointment|book|see a|see an|doctor|clinic|specialist|slot|consult)/.test(t)) return {id:'book',p:{spec:sp||'fam',time:findTime(t),loc:findLoc(t)}};
+  if(/^(hi|hello|hey|salam|good (morning|afternoon|evening))\b|what can you do|^help\b/.test(t)) return {id:'hello',p:{}};
+  return {id:'fallback',p:{}};
+}
+
+/* ---------- suggestions ---------- */
+const SUG={
+  patient:[
+    {t:'Everyday requests'},
+    {q:'I need a dermatology appointment next week, ideally in the evening.'},
+    {q:"I can't make my orthopaedic appointment on Thursday. Can you move it to next week?"},
+    {q:"What's the status of my ENT referral? My doctor sent it three weeks ago."},
+    {q:'Is my knee MRI covered by my insurance?'},
+    {q:"Is there an earlier slot for my daughter's paediatric appointment? It's in five weeks."},
+    {q:'What do I need to bring to my first diabetes clinic visit?'},
+    {q:'أريد موعدًا مع طبيب أسنان في عجمان'},
+    {t:'Test the guardrails'},
+    {q:'I have chest pain right now and my left arm feels numb. Can I book a cardiologist?',gr:1},
+    {q:'Should I stop my blood pressure tablets before my appointment?',gr:1},
+    {q:"When is my husband's next appointment?",gr:1}
+  ],
+  staff:[
+    {t:'Staff requests'},
+    {q:'New referral from Dr. Khalid Al Nuaimi at Kalba Health Centre: Mariam Saeed, cardiology, chest pain on exertion. Please process it.'},
+    {q:'Which urgent referrals are breaching their target time this week?'}
+  ]
+};
+function renderSuggest(){
+  $('#suggest').innerHTML=SUG[PERSONA].map(s=>s.t?`<div class="sg-title">${esc(s.t)}</div>`:`<div class="sg"><button class="${s.gr?'gr':''}" data-q="${esc(s.q)}" dir="auto">${esc(s.q)}</button></div>`).join('');
+}
+$('#suggest').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-q]'); if(!b||running) return;
+  const t=b.dataset.q; const r=route(t); play(r.id,Object.assign({text:t},r.p));
+});
+
+/* ---------- tabs ---------- */
+/* ---------- cover: a generic agent (not the solution the group builds), with requests travelling through it ---------- */
+const COVER_NODES={
+  you:{l:'Person',s:'Asks for something',k:'user',x:130,y:325,w:160},
+  ag:{l:'AI agent',s:'Understands, plans, acts',k:'orch',x:430,y:325,w:180},
+  mem:{l:'Memory',s:'What it learned so far',k:'orch',ic:'mem',x:430,y:170,w:170},
+  gd:{l:'Guardrails',s:'Checks before it acts',k:'guard',x:430,y:480,w:170},
+  kn:{l:'Knowledge',s:'Documents and rules',k:'data',x:830,y:228,w:170},
+  tl:{l:'Tools',s:'Systems it can use',k:'tool',x:830,y:325,w:170},
+  ot:{l:'Other agents',s:'Take on part of the job',k:'agent',x:830,y:422,w:170},
+  hu:{l:'Person in charge',s:'Approves and decides',k:'human',x:830,y:540,w:170}
+};
+const COVER_EDGES=[['you','ag'],['ag','mem'],['ag','kn'],['ag','tl'],['ag','ot'],['ag','gd'],['gd','hu']];
+const coverStage=$('#coverStage'), coverMap=$('#coverMap');
+(function buildCover(){
+  const svg=document.createElementNS(SVGNS,'svg'); svg.setAttribute('class','edges'); svg.setAttribute('viewBox','0 0 1000 650'); coverStage.appendChild(svg);
+  const paths={};
+  COVER_EDGES.forEach(([a,b])=>{const p=document.createElementNS(SVGNS,'path'); p.setAttribute('d',pathD(COVER_NODES[a],COVER_NODES[b])); p.setAttribute('class','edge'); svg.appendChild(p); paths[a+'>'+b]=p;});
+  Object.keys(COVER_NODES).forEach(id=>coverStage.appendChild(nodeEl(id,COVER_NODES[id],COVER_NODES[id],false)));
+  const fit=()=>{
+    // fit the drawn part of the map (not the whole 1000x650 stage), so the simpler map reads large
+    const W=coverMap.clientWidth,H=coverMap.clientHeight; if(!W||!H) return;
+    const bx=40,by=140,bw=890,bh=430, wide=W>900;
+    const s=Math.min((wide?W*.52:W*.94)/bw,(wide?H*.7:H*.86)/bh,1.6);
+    const left=(wide?W-W*.05-bw*s:(W-bw*s)/2)-bx*s;
+    coverStage.style.transform=`translate(${left}px,${(H-bh*s)/2-by*s}px) scale(${s})`;
+  };
+  if(window.ResizeObserver) new ResizeObserver(fit).observe(coverMap); else window.addEventListener('resize',fit);
+  fit();
+  if(REDUCE) return;
+  // one request, told as a story: it reaches the agent, the agent splits the work across what it needs,
+  // the answers come back, a risky step goes through the guardrails to a person, and the reply goes out
+  const nodeOf=id=>coverStage.querySelector(`.node[data-id="${id}"]`);
+  const SEG=[], LIT=[];
+  const go=(k,t,d,rev)=>SEG.push({p:paths[k],t,d,rev:!!rev});
+  const lit=(id,t,d)=>LIT.push({el:nodeOf(id),t,d});
+  go('you>ag',0,2000);                       lit('you',0,700);   lit('ag',1900,2500);
+  ['mem','kn','tl','ot'].forEach((id,i)=>{   // fan out, slightly staggered
+    go('ag>'+id,4200+i*250,2000); lit(id,6100+i*250,1500);
+    go('ag>'+id,7800+i*250,2000,true);       // and back with what it found
+  });
+  lit('ag',9600,1800);
+  go('ag>gd',11200,1700);                    lit('gd',12800,1300);
+  go('gd>hu',13900,1700);                    lit('hu',15500,1800);
+  go('gd>hu',17200,1500,true);
+  go('ag>gd',18600,1500,true);               lit('ag',20000,900);
+  go('you>ag',20800,2200,true);              lit('you',22900,1600);
+  const CYCLE=26500;
+  const dots=[0,1,2,3].map(()=>{const c=document.createElementNS(SVGNS,'circle'); c.setAttribute('class','packet'); c.setAttribute('r','6'); c.style.opacity=0; svg.appendChild(c); return c;});
+  const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  let t0=null;
+  (function loop(ts){
+    requestAnimationFrame(loop);
+    if($('#cover').hidden){t0=null; return;}
+    if(t0===null) t0=ts;
+    const T=Math.max(0,ts-t0)%CYCLE;
+    let n=0; const on=new Set();
+    SEG.forEach(g=>{
+      if(T<g.t||T>=g.t+g.d||n>=dots.length) return;
+      const k=ease((T-g.t)/g.d), L=g.p.getTotalLength(), pt=g.p.getPointAtLength((g.rev?1-k:k)*L), c=dots[n++];
+      c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); c.style.opacity=1; on.add(g.p);
+    });
+    for(;n<dots.length;n++) dots[n].style.opacity=0;
+    Object.values(paths).forEach(p=>p.classList.toggle('lit',on.has(p)));
+    const act=new Set(LIT.filter(h=>h.el&&T>=h.t&&T<h.t+h.d).map(h=>h.el));
+    LIT.forEach(h=>{if(h.el) h.el.classList.toggle('active',act.has(h.el));});
+  })(performance.now());
+})();
+
+const VIEWS=['cover','start','build','run'];
+function showTab(which,instant){
+  const cur=VIEWS.find(v=>!$('#'+v).hidden&&!$('#'+v).classList.contains('leaving'));
+  [['start','tabStart'],['build','tabBuild'],['run','tabRun']].forEach(([v,t])=>{$('#'+t).classList.toggle('on',v===which); $('#'+t).setAttribute('aria-selected',v===which);});
+  const tok=showTab.tok=(showTab.tok||0)+1;
+  const swap=()=>{
+    VIEWS.forEach(v=>{$('#'+v).hidden=v!==which; $('#'+v).classList.remove('leaving');});
+    requestAnimationFrame(()=>{if(which==='run') fitR(); else if(which==='build') fitB();});
+  };
+  const out=cur&&$('#'+cur), inn=$('#'+which);
+  if(instant||REDUCE||!out||cur===which||!inn.animate){swap(); greet(which); return;}
+  const fade=out.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-8px)'}],{duration:200,easing:'cubic-bezier(.4,0,1,1)'});
+  if(!fade){swap(); greet(which); return;}
+  out.classList.add('leaving');
+  fade.onfinish=()=>{
+    if(tok!==showTab.tok) return;
+    swap();
+    inn.animate([{opacity:0,transform:'translateY(14px) scale(.992)'},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.7,.2,1)'});
+    greet(which);
+  };
+}
+function greet(which){
+  const run=which==='run';
+  if(!run) return;
+  if(!showTab.greeted){
+    showTab.greeted=true;
+    addAgent(`<p>Hello. I'm the patient access agent. I can book, move or cancel outpatient appointments, track referrals and check what your insurance covers. I can't give medical advice, but I can connect you with a nurse.</p><p>What do you need today?</p>`);
+  }
+  // the note about an unfinished build is checked on every visit: it goes away once the build is complete
+  const placed=REF_IDS.filter(id=>B.nodes[id]).length, okL=B.links.filter(l=>REF_SET.has(ekey(l[0],l[1]))).length;
+  const gaps=(REF_IDS.length-placed)+(REF_EDGES.length-okL);
+  const html=`<b>Exploring the reference design</b><div>Your build still has ${gaps} missing part${gaps>1?'s':''} or link${gaps>1?'s':''}, so you are exploring the complete reference design.</div>`;
+  if(gaps===0){if(greet.note){greet.note.remove(); greet.note=null;}}
+  else if(greet.note) greet.note.innerHTML=html;
+  else if(!running) greet.note=addHtml('lesson info',html);
+}
+// restart: a second click within a few seconds confirms, then the lab reloads empty on the start page
+$('#btnRestart').onclick=()=>{
+  const b=$('#btnRestart'), lbl=b.querySelector('span');
+  if(!b.classList.contains('sure')){
+    b.classList.add('sure'); lbl.textContent='Click again to clear everything';
+    clearTimeout(b._t); b._t=setTimeout(()=>{b.classList.remove('sure'); lbl.textContent='Restart';},3500);
+    return;
+  }
+  abort=true;
+  history.replaceState(null,'',location.pathname+'#start'); location.reload();
+};
+$('#tabStart').onclick=()=>showTab('start');
+$('#btnCoverGo').onclick=()=>showTab('start');
+$('#brandHome').onclick=()=>showTab('cover');
+$('#tabBuild').onclick=()=>showTab('build');
+$('#tabRun').onclick=()=>showTab('run');
+$('#btnGoRun').onclick=()=>showTab('run');
+/* start page: the room decides how much the agent may do, then compares with the reference */
+const LINES=[
+  {t:'Book, move or cancel a routine outpatient appointment',a:'alone',why:'High volume and easy to undo. A wrong booking can be moved.'},
+  {t:'Submit a pre-approval request to the insurer',a:'ask',why:'It leaves the hospital and cannot be taken back. The access coordinator approves it in Teams.'},
+  {t:'Tell a patient whether their chest pain is serious',a:'never',why:'A clinical judgement. The agent hands over to the triage nurse.'},
+  {t:'Check what a patient\'s insurance covers',a:'alone',why:'Read-only. Nothing changes.'},
+  {t:'Book an urgent referral into a specialist\'s slot',a:'ask',why:'Clinical priority and a scarce slot. A person confirms first.'},
+  {t:'Advise a patient to stop a medication',a:'never',why:'Medication changes have no safe undo. Only the doctor decides.'},
+  {t:'Remind patients of their appointment in Arabic or English',a:'alone',why:'Low risk, and the no-show rate shows whether it works.'},
+  {t:'Share a record with a relative who has no consent',a:'never',why:'Privacy rules. The agent asks the patient for consent first.'}
+];
+const LINE_L={never:'Out of scope',ask:'With human approval first',alone:'Fully autonomous'};
+const linePick={};
+function renderLines(checked){
+  $('#lines').classList.toggle('checked',!!checked);
+  $('#lines').innerHTML=LINES.map((l,i)=>{
+    const p=linePick[i], cls=checked?(p===l.a?' hit':' miss'):'';
+    const sel=checked?l.a:p;
+    return `<div class="ln${cls}"><span>${esc(l.t)}</span><div class="seg" role="group" aria-label="${esc(l.t)}">${Object.keys(LINE_L).map(c=>
+      `<button type="button" data-i="${i}" data-c="${c}" class="${sel===c?'on':''}" aria-pressed="${sel===c}">${LINE_L[c]}</button>`).join('')}</div>`+
+      (checked?`<div class="why"><b>${p===l.a?'✓ '+LINE_L[l.a]:(p?'Reference: ':'')+LINE_L[l.a]}</b><span>${esc(l.why)}</span></div>`:'')+'</div>';
+  }).join('');
+}
+$('#lines').addEventListener('click',e=>{const b=e.target.closest('button[data-c]'); if(!b||$('#lines').classList.contains('checked')) return;
+  linePick[b.dataset.i]=b.dataset.c; renderLines(false);
+  const n=Object.keys(linePick).length; $('#lineRes').textContent=n<LINES.length?`${n} of ${LINES.length} decided`:'All decided. Compare with the reference.';});
+$('#btnLines').onclick=()=>{
+  if($('#lines').classList.contains('checked')){Object.keys(linePick).forEach(k=>delete linePick[k]); renderLines(false); $('#btnLines').textContent='Compare with the reference'; $('#btnLines').classList.add('primary'); $('#lineRes').textContent=''; return;}
+  const hits=LINES.filter((l,i)=>linePick[i]===l.a).length, n=Object.keys(linePick).length;
+  renderLines(true); $('#btnLines').textContent='Decide again'; $('#btnLines').classList.remove('primary');
+  const bw=$('#briefWrap'); if(bw.hidden){bw.hidden=false; if(bw.scrollIntoView) bw.scrollIntoView({block:'nearest',behavior:REDUCE?'auto':'smooth'});}
+  $('#lineRes').textContent=n?`${hits} of ${LINES.length} match the reference.`:'Here is the reference.';
+};
+renderLines(false);
+$('#btnJobStart').onclick=()=>{B.job=true;saveB();updateGuide();renderPalette();showTab('build');};
+if(location.hash==='#test') showTab('run',true); else if(location.hash==='#build') showTab('build',true); else if(location.hash==='#start') showTab('start',true);
+
+/* ---------- init ---------- */
+renderBuild(); renderPalette(); updateGuide(); setPersona('patient',true);
+})();
+</script>
+</body>
+</html>
