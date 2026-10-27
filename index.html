@@ -211,10 +211,16 @@ main{min-height:0}
 .lines{display:flex;flex-direction:column;gap:5px}
 .ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:5px 6px 5px 12px;border-radius:10px;background:color-mix(in srgb,var(--bg) 40%,transparent);border:1px solid transparent}
 .ln>span{font-size:14px;line-height:1.35}
-.ln .seg button{padding:6px 10px;font-size:12px;white-space:nowrap}
-.ln .seg button.on[data-c="alone"]{box-shadow:inset 0 -2px 0 var(--ok)}
-.ln .seg button.on[data-c="ask"]{box-shadow:inset 0 -2px 0 var(--teams)}
-.ln .seg button.on[data-c="never"]{box-shadow:inset 0 -2px 0 var(--warn)}
+/* the three autonomy options are separate buttons with a radio dot, so they read as something to press */
+.ln .seg{border:0;border-radius:0;overflow:visible;gap:6px}
+.ln .seg button{--c:var(--mint);position:relative;padding:7px 11px 7px 29px;font-size:12px;white-space:nowrap;border:1px solid var(--line-strong);border-radius:9px;background:var(--panel-2);color:var(--soft);transition:border-color .15s,background .15s,color .15s}
+.ln .seg button[data-c="alone"]{--c:var(--ok)}
+.ln .seg button[data-c="ask"]{--c:var(--teams)}
+.ln .seg button[data-c="never"]{--c:var(--warn)}
+.ln .seg button::before{content:"";position:absolute;left:10px;top:50%;width:12px;height:12px;margin-top:-7px;border-radius:50%;border:1.5px solid var(--mute);box-sizing:border-box}
+.ln .seg button:hover{border-color:var(--c);color:var(--ink);background:color-mix(in srgb,var(--c) 8%,var(--panel-2))}
+.ln .seg button.on{border-color:var(--c);color:var(--ink);background:color-mix(in srgb,var(--c) 16%,var(--panel-2));box-shadow:none}
+.ln .seg button.on::before{border-color:var(--c);background:var(--c);box-shadow:inset 0 0 0 2px var(--panel-2)}
 .ln .why{grid-column:1/-1;font-size:12.5px;color:var(--soft);display:flex;gap:6px}
 .ln .why b{white-space:nowrap}
 .ln.hit{border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
@@ -447,6 +453,12 @@ main{min-height:0}
 .scenes-head .ttl b{display:block;font-size:15px}
 .ctrls{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
 .ctrls .grp{display:flex;align-items:center;gap:8px}
+.icon-btn.sm{width:32px;height:32px;border-radius:9px;background:transparent;border-color:transparent;color:var(--mute)}
+.icon-btn.sm:hover,.icon-btn.sm[aria-expanded="true"]{border-color:var(--line);color:var(--ink);background:var(--panel)}
+.icon-btn.sm svg{width:16px;height:16px}
+.set-wrap{position:relative}
+.set-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:12px;background:var(--panel);box-shadow:0 14px 36px -14px rgba(0,0,0,.55)}
+.set-pop[hidden]{display:none}
 .scenes-body{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(330px,1fr);gap:12px;padding:12px;min-height:0}
 .diagram{position:relative;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--bg) 60%,transparent);min-height:0}
 .diagram .stage-wrap{flex:1}
@@ -641,7 +653,8 @@ table.scan tr.w td:first-child{box-shadow:inset 3px 0 var(--warn)}
   .start-in{padding:20px 4px}
   .ln{grid-template-columns:1fr}
   .ln .seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-  .ln .seg button{white-space:normal;text-align:center;line-height:1.2}
+  .ln .seg button{white-space:normal;text-align:left;line-height:1.2;padding:7px 6px 7px 25px}
+  .ln .seg button::before{left:8px}
   .canvas-panel .legend{display:none}
 }
 @media (max-width:560px){
@@ -666,7 +679,7 @@ table.scan tr.w td:first-child{box-shadow:inset 3px 0 var(--warn)}
       <button class="tab" id="tabBuild" role="tab" aria-selected="false"><span class="n">2</span>Build the agent</button>
       <button class="tab" id="tabRun" role="tab" aria-selected="false"><span class="n">3</span>Explore the agent</button>
     </nav>
-    <span class="sim">Simulation with fictional people, clinics and data</span>
+    <span class="sim">Fictional people, clinics and data</span>
     <button class="btn sm ghost restart" id="btnRestart" title="Clear the build and the chat, and start the lab again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Restart</span></button>
     <button class="icon-btn" id="themeToggle" aria-label="Switch between dark and light theme">
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
@@ -697,8 +710,7 @@ table.scan tr.w td:first-child{box-shadow:inset 3px 0 var(--warn)}
           </div>
           <article class="st-card line-card" aria-labelledby="lineH">
             <div class="st-h"><h2 id="lineH">Agent autonomy level</h2></div>
-            <p>Set the scope: for each task, decide as a room how far the agent may go. Then compare with the reference.</p>
-            <div class="line-key"><span><i style="background:var(--warn)"></i>Out of scope: handled by a person</span><span><i style="background:var(--teams)"></i>With human approval first</span><span><i style="background:var(--ok)"></i>Fully autonomous</span></div>
+            <p>For each task, select the autonomy level by pressing one of the three buttons. Decide as a room how far the agent may go, then compare with the reference.</p>
             <div class="lines" id="lines"></div>
             <div class="line-act"><button class="btn primary" id="btnLines">Compare with the reference</button><span class="line-res" id="lineRes" aria-live="polite"></span></div>
           </article>
@@ -792,20 +804,23 @@ table.scan tr.w td:first-child{box-shadow:inset 3px 0 var(--warn)}
         <div class="scenes-head">
           <div class="ttl"><span class="zone-tag">Behind the scenes</span><b>How the agent works on the request</b></div>
           <div class="ctrls">
-            <div class="grp"><span class="lbl">Data</span>
+            <!-- data switch kept for later use; hidden while SHOW_DATA is false -->
+            <div class="grp" id="dataGrp" hidden><span class="lbl">Data</span>
               <div class="seg data" id="dataSeg" role="group" aria-label="Data the agent uses">
                 <button data-mode="raw">Raw data<small>as it is today</small></button>
                 <button data-mode="cur" class="on">Curated data<small>semantic layer</small></button>
               </div>
               <button class="btn sm ghost" id="btnData">What changes?</button>
             </div>
-            <div class="grp"><span class="lbl">Speed</span>
-              <div class="seg" id="speedSeg" role="group" aria-label="Animation speed">
-                <button data-s="0.4" class="on">Slow</button><button data-s="1">Normal</button><button data-s="2.4">Fast</button>
+            <div class="grp set-wrap">
+              <button class="icon-btn sm" id="btnSettings" aria-label="Playback settings" aria-expanded="false" aria-controls="setPop" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+              <div class="set-pop" id="setPop" hidden role="dialog" aria-label="Playback settings">
+                <span class="lbl">Speed</span>
+                <div class="seg" id="speedSeg" role="group" aria-label="Animation speed">
+                  <button data-s="0.4" class="on">Slow</button><button data-s="1">Normal</button><button data-s="2.4">Fast</button>
+                </div>
+                <button class="btn sm ghost" id="btnPause" disabled>Pause</button>
               </div>
-            </div>
-            <div class="grp">
-              <button class="btn sm ghost" id="btnPause" disabled>Pause</button>
             </div>
           </div>
         </div>
@@ -1243,7 +1258,7 @@ function updateGuide(){
   document.querySelectorAll('.pg').forEach((g,i)=>g.classList.toggle('cur',PAL[i].n===cur));
   const bj=$('#btnJob'); if(bj) bj.onclick=()=>{B.job=true;saveB();updateGuide();renderPalette();};
   const agreed=stepDone(STEPS[0]); $('#jobOk').hidden=!agreed; if(agreed) $('#briefWrap').hidden=false;
-  $('#btnJobStart').textContent=agreed?'Continue building':'Start to build';
+  $('#btnJobStart').textContent=Object.keys(B.nodes).length>1?'Continue building':'Start to build';
 }
 function explainMark(m){
   if(m.dataset.dx){const d=DX[m.dataset.dx]; toast(`${d.l}: does this belong here?`,d.why+' Select it and press × to remove it.',true);}
@@ -1305,6 +1320,7 @@ buildRunStage();
 const fitR=fitter($('#rWrap'),$('#rSizer'),rStage,.55);
 
 /* run state */
+const SHOW_DATA=false; // raw vs curated data switch: kept in code, hidden in the workshop
 let MODE='cur',PERSONA='patient',SPEED=0.4,paused=false,abort=false,running=false,last=null;
 const ACTS=[]; const act=fn=>{ACTS.push(fn);return ACTS.length-1;};
 
@@ -1489,7 +1505,7 @@ function fly(from,to,label,cls,grow,landId){
 function addAgent(html,opts){
   opts=opts||{};
   const d=document.createElement('div'); d.className='msg a pop'+(inTeams()?' tm':'');
-  const chip=opts.mode?`<span class="chip ${opts.mode}">${opts.mode==='raw'?'Raw data':'Curated data'}</span>`:'';
+  const chip=opts.mode&&SHOW_DATA?`<span class="chip ${opts.mode}">${opts.mode==='raw'?'Raw data':'Curated data'}</span>`:'';
   d.innerHTML=`<div class="mh">${inTeams()?`<span class="nm">Patient access agent</span><span class="app">App</span><span>${tmNow()}</span>`:'<span>Agent</span>'}${chip}</div><div ${opts.rtl?'dir="rtl"':''}>${html}</div>`+
     (opts.chips&&opts.chips.length?`<div class="chips">${opts.chips.map(c=>`<button class="btn sm" data-act="${act(c.fn)}">${esc(c.l)}</button>`).join('')}</div>`:'');
   msgs.appendChild(d); scrollChat(); return d;
@@ -1537,7 +1553,7 @@ function approval(ap){
 function resetRun(sc){
   showTeams(false);
   abort=false; paused=false; PLAN_DONE=new Set();
-  flowEl.innerHTML=''; $('#flowEmpty').hidden=true; $('#flowStatus').textContent=`Working with ${MODE==='raw'?'raw data':'curated data'}`;
+  flowEl.innerHTML=''; $('#flowEmpty').hidden=true; $('#flowStatus').textContent=SHOW_DATA?`Working with ${MODE==='raw'?'raw data':'curated data'}`:'Working on the request';
   Object.values(R.edges).forEach(e=>e.p.setAttribute('class','edge'));
   if(R.pill){R.pill.remove();R.pill=null;}
   const inv=new Set();
@@ -1605,11 +1621,12 @@ async function play(id,p){
       addAgent(sc.reply,{mode:sc.dd?MODE:null,chips:sc.chips,rtl:sc.rtl});
       if(sc.lesson){
         const L=sc.lesson; const other=MODE==='raw'?'cur':'raw';
-        const replayBtn=sc.dd?`<button class="btn sm ${MODE==='raw'?'primary':''}" data-act="${act(()=>replay(other))}">Ask the same again with ${other==='raw'?'raw':'curated'} data</button>`:'';
-        addHtml('lesson '+L.type,`<b>${esc(L.title)}</b>${L.text?`<div>${esc(L.text)}</div>`:''}${L.items?`<ul>${L.items.filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${replayBtn}`);
+        const replayBtn=sc.dd&&SHOW_DATA?`<button class="btn sm ${MODE==='raw'?'primary':''}" data-act="${act(()=>replay(other))}">Ask the same again with ${other==='raw'?'raw':'curated'} data</button>`:'';
+        const ltext=SHOW_DATA||!L.text?L.text:L.text.replace(/\s*[^.]*(raw|curated) data[^.]*\./gi,'').trim();
+        addHtml('lesson '+L.type,`<b>${esc(L.title)}</b>${ltext?`<div>${esc(ltext)}</div>`:''}${L.items?`<ul>${L.items.filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${replayBtn}`);
       }
       const warns=flowEl.querySelectorAll('.fi.w').length;
-      $('#flowStatus').textContent=`Done in ${done} steps`+(warns?`, ${warns} to check`:'')+`, ${MODE==='raw'?'raw data':'curated data'}`;
+      $('#flowStatus').textContent=`Done in ${done} steps`+(warns?`, ${warns} to check`:'')+(SHOW_DATA?`, ${MODE==='raw'?'raw data':'curated data'}`:'');
     }
   } else {
     await setChat(true); addAgent('<p>Stopped.</p>'); $('#flowStatus').textContent='Stopped';
@@ -1637,6 +1654,12 @@ $('#composer').addEventListener('submit',e=>{
 $('#railStop').onclick=()=>{if(running){abort=true;paused=false;}};
 $('#btnPause').onclick=()=>{paused=!paused;$('#btnPause').textContent=paused?'Resume':'Pause';};
 $('#speedSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;SPEED=+b.dataset.s;document.querySelectorAll('#speedSeg button').forEach(x=>x.classList.toggle('on',x===b));});
+if(SHOW_DATA) $('#dataGrp').hidden=false;
+const setPop=$('#setPop'),btnSet=$('#btnSettings');
+function showSettings(on){setPop.hidden=!on;btnSet.setAttribute('aria-expanded',String(on));}
+btnSet.onclick=e=>{e.stopPropagation();showSettings(setPop.hidden);};
+document.addEventListener('click',e=>{if(!setPop.hidden&&!e.target.closest('.set-wrap')) showSettings(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!setPop.hidden){showSettings(false);btnSet.focus();}});
 function setMode(m){MODE=m;document.querySelectorAll('#dataSeg button').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));}
 let dataSeen=false;
 $('#dataSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||running)return;setMode(b.dataset.mode);
@@ -2327,6 +2350,7 @@ $('#btnLines').onclick=()=>{
   if($('#lines').classList.contains('checked')){Object.keys(linePick).forEach(k=>delete linePick[k]); renderLines(false); $('#btnLines').textContent='Compare with the reference'; $('#btnLines').classList.add('primary'); $('#lineRes').textContent=''; return;}
   const hits=LINES.filter((l,i)=>linePick[i]===l.a).length, n=Object.keys(linePick).length;
   renderLines(true); $('#btnLines').textContent='Decide again'; $('#btnLines').classList.remove('primary');
+  if(!B.job){B.job=true;saveB();updateGuide();renderPalette();}
   const bw=$('#briefWrap'); if(bw.hidden){bw.hidden=false; if(bw.scrollIntoView) bw.scrollIntoView({block:'nearest',behavior:REDUCE?'auto':'smooth'});}
   $('#lineRes').textContent=n?`${hits} of ${LINES.length} match the reference.`:'Here is the reference.';
 };
