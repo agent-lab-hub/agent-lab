@@ -1320,7 +1320,7 @@ buildRunStage();
 const fitR=fitter($('#rWrap'),$('#rSizer'),rStage,.55);
 
 /* run state */
-const SHOW_DATA=false; // raw vs curated data switch: kept in code, hidden in the workshop
+const SHOW_DATA=false, SHOW_LESSONS=false; // lesson boxes in the chat: kept in code, hidden in the workshop // raw vs curated data switch: kept in code, hidden in the workshop
 let MODE='cur',PERSONA='patient',SPEED=0.4,paused=false,abort=false,running=false,last=null;
 const ACTS=[]; const act=fn=>{ACTS.push(fn);return ACTS.length-1;};
 
@@ -1619,7 +1619,7 @@ async function play(id,p){
       $('#flowStatus').textContent='Stopped by a person';
     } else {
       addAgent(sc.reply,{mode:sc.dd?MODE:null,chips:sc.chips,rtl:sc.rtl});
-      if(sc.lesson){
+      if(sc.lesson&&SHOW_LESSONS){
         const L=sc.lesson; const other=MODE==='raw'?'cur':'raw';
         const replayBtn=sc.dd&&SHOW_DATA?`<button class="btn sm ${MODE==='raw'?'primary':''}" data-act="${act(()=>replay(other))}">Ask the same again with ${other==='raw'?'raw':'curated'} data</button>`:'';
         const ltext=SHOW_DATA||!L.text?L.text:L.text.replace(/\s*[^.]*(raw|curated) data[^.]*\./gi,'').trim();
@@ -1686,7 +1686,7 @@ function setPersona(p,quiet){
   renderSuggest();
   if(quiet) return;
   addHtml('divider',p==='staff'?'Now as staff, in Teams':'Now as a patient, in the app');
-  if(p==='staff'&&!staffNote){staffNote=true; addHtml('lesson info','<b>For staff, the agent lives in Teams</b><div>No new app to learn. Staff chat with the agent like with a colleague, in the tool they use all day. When the agent needs a decision, it sends the person in charge a Teams message and waits.</div>');}
+  if(SHOW_LESSONS&&p==='staff'&&!staffNote){staffNote=true; addHtml('lesson info','<b>For staff, the agent lives in Teams</b><div>No new app to learn. Staff chat with the agent like with a colleague, in the tool they use all day. When the agent needs a decision, it sends the person in charge a Teams message and waits.</div>');}
 }
 $('#persona').addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(b&&!running)setPersona(b.dataset.p);});
 
@@ -2071,13 +2071,27 @@ SC.sla=(p,m)=>{
 /* ---- guardrail: emergency ---- */
 SC.emergency=(p)=>({who:'patient',dd:false,steps:[
   S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
-  S('@orch','Warning signs found','Before anything else, the orchestrator scans for warning signs. It finds them.','kv',{'Warning signs':F('Chest pain now, arm numbness','Possible emergency'),Booking:'Paused'},{st:'warn'}),
+  S('@orch','Warning signs found','Before anything else, the orchestrator scans for warning signs. It finds them.','kv',{'Warning signs':F(p.signs||'Chest pain now, arm numbness','Possible emergency'),Booking:'Paused'},{st:'warn'}),
   S('orch>guard','Emergency rule','The reviewer applies the emergency rule: stop, give emergency advice, alert a nurse.','kv',{Rule:'Possible emergency: no booking, emergency advice, alert triage nurse',Decision:'The agent does not judge how serious it is'},{lbl:'Possible emergency',st:'warn'}),
-  S('guard>h_nurse','Nurse alerted','A triage nurse is alerted at once with the details.','kv',{Alert:`${PT.name} reports chest pain and left arm numbness in the app`,Phone:PT.phone,'Call back':'Within 5 minutes'},{lbl:'Urgent alert',st:'warn'}),
+  S('guard>h_nurse','Nurse alerted','A triage nurse is alerted at once with the details.','kv',{Alert:`${PT.name} reports ${(p.signs||'chest pain and left arm numbness').toLowerCase()} in the app`,Phone:PT.phone,'Call back':'Within 5 minutes'},{lbl:'Urgent alert',st:'warn'}),
   S('guard>orch','Emergency reply','The orchestrator must send the emergency reply, nothing else.','kv',{Reply:'Emergency template, no booking'},{lbl:'Emergency reply'}),
   ANSWER],
   reply:`<div class="card alert"><b>This could be an emergency.</b><p style="margin:4px 0 0">Call <b>998</b> now or go to the nearest emergency department. Do not wait for an appointment.</p></div><p>A triage nurse has been alerted and will call you on ${esc(PT.phone)}.</p>`,
   lesson:{type:'info',title:'Guardrails come first',text:'The emergency check runs before any booking. The agent never decides whether chest pain is serious; it hands over at once. This works the same with raw or curated data.'},capDone:'Emergency handed to a person'});
+
+/* ---- guardrail: symptoms without warning signs go to a nurse ---- */
+SC.symptom=(p)=>({who:'patient',dd:false,steps:[
+  S('user>orch','Request received','The message reaches the orchestrator.','kv',{Message:p.text,Patient:`${PT.name}, ${PT.mrn}`},{lbl:'New message'}),
+  S('@orch','Symptoms described','It scans for warning signs first. None found, but the patient describes symptoms.','kv',{Symptoms:F(p.signs||'Not specified','Clinical question, outside this agent’s job'),'Warning signs':'None found'},{st:'warn'}),
+  S('orch>guard','No-diagnosis rule','The reviewer applies the rule: no diagnosis, a clinician decides, and the patient gets safety advice.','kv',{Rule:'No diagnosis or triage by the agent',Action:'Nurse call today, safety advice'},{lbl:'Clinical question',st:'warn'}),
+  S('guard>h_nurse','Nurse call requested','The triage nurse queue gets the message.','kv',{Message:p.text,Patient:PT.name},{lbl:'Call request'}),
+  S('guard>orch','Book a call','The orchestrator books a call slot.','kv',{Next:'Book nurse call'},{lbl:'Book call'}),
+  S('orch>sch','Call slot requested','The scheduling agent finds the next nurse call slot.','kv',{Find:'Nurse phone call, today'},{lbl:'Find call slot'}),
+  S('sch>t_sched','Call booked','A call is booked for today.','kv',{Booked:OK('Today, 11:30, triage nurse phone call')},{lbl:'Book',a:'Booking a nurse call'}),
+  S('sch>orch','Confirmed','Done.','kv',{Result:OK('Booked')}),
+  ANSWER],
+  reply:`<p>I can't assess symptoms, so I've passed your message to a triage nurse. They will call you <b>today at 11:30</b> on ${esc(PT.phone)}.</p><div class="card alert"><b>If it gets worse</b>, or you have chest pain, trouble breathing or heavy bleeding, call <b>998</b> or go to the nearest emergency department straight away.</div>`,
+  lesson:{type:'info',title:'The agent does not diagnose',text:'Symptoms are a clinical matter. The agent hands them to a nurse and tells the patient when to go straight to the emergency department.'},capDone:'Symptoms routed to a nurse'});
 
 /* ---- guardrail: medical advice ---- */
 SC.advice=(p)=>({who:'patient',dd:false,steps:[
@@ -2149,11 +2163,30 @@ SC.fallback=(p)=>({who:PERSONA,dd:false,steps:[
   lesson:{type:'info',title:'Asking beats guessing',text:'When the agent is unsure, it asks. A confident guess is the most dangerous answer an agent can give.'}});
 
 /* ---------- routing free text ---------- */
+/* health complaints: red flags, or a symptom described as severe or sudden, mean "possible emergency";
+   other symptoms go to a triage nurse. The agent never judges how serious it is. */
+const RED_RX=/(chest pain|pain in (my|the) chest|can'?t breathe?|cannot breathe|difficult(y)? breathing|trouble breathing|hard to breathe|short(ness)? of breath|struggling to breathe|unconscious|passed out|fainted|collaps|not responding|bleeding (heavily|a lot|badly)|heavy bleeding|won'?t stop bleeding|cough(ing)? (up )?blood|vomit(ing)? blood|blood in (my )?(vomit|stool|urine)|stroke|face (is )?drooping|slurred speech|\bnumb|paraly|seizure|convuls|suicid|kill myself|end my life|self[- ]harm|overdose|took too many|poison|allergic reaction|anaphyla|throat (is )?(swelling|closing)|swollen (throat|tongue|lips|face)|head injury|hit my head|broken bone|car accident|severe burn|emergency)/;
+const SYM_RX=/(pain|painful|hurt|ache|aching|\bsore\b|cramp|bleed|vomit|throwing up|nause|diarrh|fever|temperature|dizz|faint|breath|cough|swell|swollen|rash|burn|injur|\bfell\b|wound|headache|migraine|stomach|belly|tummy|abdom|unwell|\bsick\b|\bill\b)/;
+const SEV_RX=/(severe|terribl|unbearable|extreme|excruciating|intense|awful|worst|very bad|really bad|so bad|a lot|so much|very much|can'?t (stand|move|walk|sleep|bear)|cannot (stand|move|walk|bear)|right now|suddenly|sudden|getting worse|worse and worse|urgent|immediately|asap|help me|please help)/;
+function isEmergency(t){return RED_RX.test(t)||(SYM_RX.test(t)&&SEV_RX.test(t));}
+function signsOf(t){
+  const L=[[/chest pain|pain in (my|the) chest/,'Chest pain'],[/numb/,'Numbness'],[/breath/,'Breathing problems'],[/bleed|blood/,'Bleeding'],
+    [/unconscious|passed out|faint|collaps|not responding/,'Fainting or collapse'],[/stroke|droop|slurred|paraly/,'Signs of a stroke'],[/seizure|convuls/,'Seizure'],
+    [/suicid|kill myself|end my life|self[- ]harm/,'Risk of self-harm'],[/overdose|took too many|poison/,'Possible overdose or poisoning'],
+    [/allerg|anaphyla|throat|tongue|lips/,'Possible allergic reaction'],[/head injury|hit my head|accident|broken|\bfell\b/,'Injury'],[/burn/,'Burn'],
+    [/fever|temperature/,'Fever'],[/stomach|belly|tummy|abdom/,'Stomach pain'],[/headache|migraine/,'Headache'],[/vomit|throwing up|nause/,'Vomiting or nausea'],[/dizz/,'Dizziness']];
+  const f=L.filter(([r])=>r.test(t)).map(x=>x[1]);
+  if(!f.length&&/(pain|hurt|ache)/.test(t)) f.push('Pain');
+  const sev=SEV_RX.test(t)&&!RED_RX.test(t);
+  const out=f.slice(0,2).map((x,i)=>i===0&&sev?(/^(Pain|Stomach pain|Headache)$/.test(x)?'Severe '+x.toLowerCase():x+', severe or getting worse'):x).join(', ');
+  return out||'Possible emergency';
+}
 function route(text){
   const t=text.toLowerCase();
   const sp=findSpec(t);
   if(/[؀-ۿ]/.test(text)) return {id:'arabic',p:{}};
-  if(/(chest pain|can'?t breathe|cannot breathe|short of breath|unconscious|bleeding heavily|heavy bleeding|stroke|\bnumb\b|fainted|severe pain|suicid|overdose)/.test(t)&&!/referral from|new referral/.test(t)) return {id:'emergency',p:{}};
+  const staffRef=/referral from|new referral/.test(t);
+  if(!staffRef&&isEmergency(t)) return {id:'emergency',p:{signs:signsOf(t)}};
   if(/(husband|wife|brother|sister|mother|father|\bmum\b|\bmom\b|\bdad\b|friend|neighbou?r|someone else|my partner)/.test(t)) return {id:'privacy',p:{}};
   if(/(new referral|referral from|process (the |this |a )?referral|triage (this|the) referral)/.test(t)) return {id:'referral',p:{}};
   if(/(breach|overdue|\bsla\b|target time|backlog|how many (urgent )?referrals|waiting too long)/.test(t)) return {id:'sla',p:{}};
@@ -2163,6 +2196,7 @@ function route(text){
   if(/(earlier|sooner|cancellation|waiting list|waitlist|bring forward)/.test(t)) return {id:'earlier',p:{}};
   if(/(reschedul|move my|change my|can'?t make|cannot make|postpone|cancel)/.test(t)) return {id:'resched',p:{spec:sp}};
   if(/(bring|prepare|what do i need|documents?|paperwork)/.test(t)) return {id:'docs',p:{spec:sp}};
+  if(!staffRef&&SYM_RX.test(t)&&!sp&&!/(appointment|book|slot|see a|see an|doctor|clinic|specialist)/.test(t)) return {id:'symptom',p:{signs:signsOf(t)}};
   if(sp||/(appointment|book|see a|see an|doctor|clinic|specialist|slot|consult)/.test(t)) return {id:'book',p:{spec:sp||'fam',time:findTime(t),loc:findLoc(t)}};
   if(/^(hi|hello|hey|salam|good (morning|afternoon|evening))\b|what can you do|^help\b/.test(t)) return {id:'hello',p:{}};
   return {id:'fallback',p:{}};
@@ -2301,7 +2335,7 @@ function greet(which){
   const html=`<b>Exploring the reference design</b><div>Your build still has ${gaps} missing part${gaps>1?'s':''} or link${gaps>1?'s':''}, so you are exploring the complete reference design.</div>`;
   if(gaps===0){if(greet.note){greet.note.remove(); greet.note=null;}}
   else if(greet.note) greet.note.innerHTML=html;
-  else if(!running) greet.note=addHtml('lesson info',html);
+  else if(!running&&SHOW_LESSONS) greet.note=addHtml('lesson info',html);
 }
 // restart: a second click within a few seconds confirms, then the lab reloads empty on the start page
 $('#btnRestart').onclick=()=>{
